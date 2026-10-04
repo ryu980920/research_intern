@@ -33,8 +33,17 @@ for name, sim in zip(e.corner_names, e.corner_sims):
     _, specs_list, _ = sim.run(state)
     specs = e._remap_specs(specs_list[0])
 
+    # Example:
+    # two_stage_opamp_cont_gf180_tran_ff_3.0_m40
+    # -> FF_3.0V_m40C
+    parts = name.split("_")
+    process = parts[-3].upper()
+    voltage = parts[-2] + "V"
+    temperature = "m40C" if parts[-1] == "m40" else parts[-1] + "C"
+    short_name = f"{process}_{voltage}_{temperature}"
+
     rows.append({
-        "corner": name,
+        "corner": short_name,
         **specs,
         "feasible": check_feasibility(specs, e.constraints, e.directions)
     })
