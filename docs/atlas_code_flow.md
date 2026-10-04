@@ -179,6 +179,7 @@ metric별 worst-case는 다음 방식이다.
 현재 코드 기준으로 두 상황을 구분해야 한다.
 
 ### 현재 기본 ATLAS 실행
+
 ```text
 Design x
 → TT simulation
@@ -188,6 +189,7 @@ Design x
 ```
 
 ### PVT mode를 켠 경우
+
 ```text
 Design x
 → TT
@@ -197,12 +199,48 @@ Design x
 → next x
 ```
 
-따라서 robust-design 연구를 진행하려면 먼저 **PVT baseline을 명시적으로 실행하고 corner-wise 정보와 worst-case compression의 차이를 관찰하는 실험**이 필요하다.
+EXP-001과 EXP-002에서 실제 corner-wise PVT baseline을 수행한 결과, metric별 worst corner가 하나로 일치하지 않는 현상이 multi-design에서도 반복됐다.
 
-## 9. Next Question
+즉 worst-case compression이 여러 physical corner의 정보를 하나의 synthetic vector로 합칠 수 있다는 점은 실제 데이터에서 확인됐다.
 
-다음 단계에서 확인할 핵심 질문:
+다만 initial 20 designs에서는 feasible evaluation이 0 / 340이었기 때문에, 아직 corner-wise feasible island 자체의 이동·분리·지속성을 관찰할 수는 없다.
 
-> 같은 design point에 대해 corner별 feasible / infeasible 구조를 유지했을 때, worst-case로 압축한 단일 landscape에서는 사라지는 정보가 실제로 존재하는가?
+## 9. Resolved Question and Remaining Question
 
-이 질문은 아직 가설의 최종 확정이 아니다. 먼저 PVT evaluation을 실제로 실행하고 데이터를 수집해 확인해야 한다.
+### 확인된 부분
+
+다음 질문의 첫 부분은 실제 데이터로 확인됐다.
+
+> worst-case compression 과정에서 corner identity 정보가 사라지는가?
+
+**Yes.** metric별 worst corner가 서로 달라 하나의 physical corner가 아닌 조합 vector가 만들어질 수 있다.
+
+### 아직 확인되지 않은 부분
+
+다음 질문은 아직 남아 있다.
+
+> 그 정보 손실이 실제 robust candidate selection 또는 feasible-region 탐색 성능에 의미 있는 영향을 주는가?
+
+이를 검증하려면 먼저 feasible 또는 near-feasible region을 확보해야 한다.
+
+## 10. Next Code-Level Question
+
+다음으로 확인할 코드는 initial 20 points 이후의 adaptive search 구간이다.
+
+```text
+D000-D019
+→ predefined initial design set
+
+D020 and later
+→ surrogate + acquisition을 이용한 adaptive candidate
+```
+
+확인할 항목:
+
+1. initial observations가 surrogate에 어떻게 전달되는가
+2. feasibility 정보가 acquisition에 어떻게 반영되는가
+3. `TopoBO`가 D020 이후 candidate를 어느 함수에서 선택하는가
+4. candidate pool과 topology-aware score가 어떻게 연결되는가
+5. TT feasible / near-feasible candidate를 연구용 dataset으로 어떻게 보존할 것인가
+
+이 확인 이후 TT adaptive search 실험을 설계한다.
