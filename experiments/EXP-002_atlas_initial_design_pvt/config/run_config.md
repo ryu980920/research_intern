@@ -66,3 +66,44 @@ sw_stat_mismatch = 0
 - GF180 PDK commit: `9f992d5a9186d1f7820c58f039c484ad35b2edea`
 - ngspice: 44.2
 - Python: 3.10.22
+
+
+## Execution Policy
+
+Initial implementation evaluated the remaining 16 PVT corners with the parallel PVT wrapper.
+
+During D006, the following corner exceeded the ngspice timeout:
+
+```text
+FF / 3.6 V / -40 C
+timeout = 120 s
+```
+
+The same D006 design completed all 17 corners when rerun sequentially.
+
+Therefore, for the remainder of EXP-002:
+
+```text
+PVT corner execution = sequential
+ngspice timeout       = 120 s per simulation
+```
+
+Reason:
+
+- prioritize reliable dataset completion for the 20-point pilot
+- avoid treating timeout as infeasible
+- separate simulator resource / parallelism behavior from circuit feasibility
+
+The timeout root cause is not considered fully proven. Parallel resource contention or increased wall time is the current leading explanation.
+
+## Data Commit Rule
+
+A design is added to the main EXP-002 dataset only after all 17 corners complete successfully.
+
+```text
+1 completed design
+→ 1 row in design_points.csv
+→ 17 rows in corner_metrics.csv
+```
+
+Completed design IDs are skipped on rerun. Incomplete / inconsistent records are not silently duplicated.
