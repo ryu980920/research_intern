@@ -54,3 +54,33 @@ data/
 - 두 파일은 `design_id`로 연결
 
 이 구조는 transistor parameter를 corner 수만큼 반복 저장하지 않으면서도, 특정 design과 모든 PVT 결과를 추적할 수 있게 합니다.
+
+
+## Experiment Index
+
+| Experiment | Status | Role in Research Logic | Key Result |
+| --- | --- | --- | --- |
+| `EXP-001_pvt_init_params_baseline` | Completed | D000 한 점에서 17-corner PVT baseline 확보 | metric별 worst corner가 서로 다름, feasible 0 / 17 |
+| `EXP-002_atlas_initial_design_pvt` | Completed | ATLAS initial 20-point set을 multi-design PVT로 확대 | 20 × 17 = 340 evaluations, feasible 0 / 340, worst-corner mismatch 반복 확인 |
+| Next experiment | Planning | TT feasible / near-feasible region을 adaptive search로 찾기 | Experiment 번호는 설계 확정 후 부여 |
+
+현재 연구 논리:
+
+```text
+EXP-001
+one-point corner-wise baseline
+        ↓
+EXP-002
+ATLAS initial 20-point PVT pilot
+        ↓
+feasible point 0
+        ↓
+next
+TT adaptive feasible-boundary discovery
+        ↓
+selected candidate PVT
+        ↓
+corner-wise feasible structure analysis
+```
+
+Experiment 번호는 단순 작업 순서가 아니라 **독립적인 Research Question / Hypothesis가 명확해졌을 때** 부여한다.
