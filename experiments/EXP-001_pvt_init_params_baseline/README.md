@@ -137,3 +137,26 @@ ngspice가 내부적으로 생성하는 AC/DC/DC-sweep/transient raw CSV는 모�
 3. 설계 파라미터는 `design_points.csv`에 1행씩, 각 design point의 17-corner metric과 feasibility는 `corner_metrics.csv`에 17행씩 누적한다.
 4. feasible / infeasible point가 함께 나타나는 영역을 확보한다.
 5. 충분한 데이터가 모인 뒤 corner-wise feasible set과 worst-case compressed representation을 비교한다.
+
+
+## Follow-up Status
+
+EXP-001에서 계획했던 multi-design 확대는 `EXP-002_atlas_initial_design_pvt`에서 완료했다.
+
+EXP-001의 D000과 EXP-002의 D001-D019를 합쳐:
+
+```text
+20 designs × 17 corners = 340 corner evaluations
+```
+
+을 확보했다.
+
+후속 결과:
+
+- feasible evaluation: 0 / 340
+- metric별 worst corner 불일치는 multi-design에서도 반복 확인
+- feasible-island 분석을 바로 확대하기에는 feasible sample이 부족함
+
+따라서 EXP-001의 다음 단계였던 “여러 design point로 확대”는 완료되었고, 현재 연구는 **TT feasible / near-feasible region discovery** 단계로 넘어간다.
+
+세부 결과는 `../EXP-002_atlas_initial_design_pvt/README.md`와 `../../CURRENT.md`를 따른다.
