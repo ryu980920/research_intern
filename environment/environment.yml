@@ -1,0 +1,22 @@
+name: atlas
+channels:
+  - defaults
+dependencies:
+  - python=3.10.22
+  - pip
+  - pip:
+      - numpy==2.2.6
+      - scipy==1.15.3
+      - PyYAML==6.0.3
+      - scikit-learn==1.7.2
+      - torch==2.14.1
+      - botorch==0.16.1
+      - gpytorch==1.15.2
+      - networkx==3.4.2
+      - kmapper==2.1.0
+      - cma==4.5.0
+
+# System-level dependencies are documented in environment/README.md:
+# - ngspice 44.2
+# - GF180 PDK @ 9f992d5a9186d1f7820c58f039c484ad35b2edea
+# - PDK_ROOT=$HOME/pdks
