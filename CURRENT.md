@@ -8,13 +8,17 @@ _Last updated: 2026-10-04_
 
 ## Current Stage
 
-**Baseline PVT representation analysis — first 17-corner run completed**
+**ATLAS initial 20-point PVT pilot completed — feasible / near-feasible region discovery is the next bottleneck**
 
-ATLAS의 기본 실행 흐름을 실제 코드로 추적했고, design parameter → SPICE → metric → surrogate/acquisition → next candidate 연결을 확인했다.
+ATLAS의 기본 실행 흐름과 PVT aggregation 방식을 실제 코드로 추적했고, EXP-001 + EXP-002를 통해 ATLAS가 optimization 시작 시 사용하는 initial 20 design points를 17개 PVT corner에서 모두 평가했다.
 
-현재 핵심은 **PVT 정보를 worst-case로 압축하는 방식과 corner-wise 정보를 유지하는 방식의 차이가 실제 설계 탐색에서 의미가 있는지 검증하는 것**이다.
+현재 핵심 연구 질문은 그대로 유지한다.
 
-아직 개선 방법을 확정하지 않는다.
+> **PVT 정보를 metric-wise worst-case로 압축하는 방식이 corner-wise feasible-region 구조를 얼마나 잃고, 그 정보 손실이 robust candidate selection에 실제 영향을 주는가?**
+
+다만 현재 20-point initial set에서는 feasible point가 전혀 나오지 않았기 때문에, 아직 feasible-island topology를 직접 분석할 단계는 아니다.
+
+개선 방법은 아직 확정하지 않는다.
 
 ## Verified Baseline Flow
 
@@ -32,54 +36,94 @@ YAML parameter range
 
 상세 내용: `docs/atlas_code_flow.md`
 
-## Important PVT Finding
+## Important PVT Findings
 
-- two-stage op-amp YAML에는 TT 포함 총 17개의 netlist가 존재한다.
-- 현재 확인한 `run_experiment.py`, `run_benchmark.py`는 evaluator의 기본값 `pvt=False`를 사용한다.
-- 따라서 기존 smoke test의 일반 실행은 **TT-only**다.
-- evaluator 내부에는 PVT mode가 구현되어 있다.
-- PVT mode에서는 TT soft gate 후 나머지 corner를 평가하고, optimizer에 전달하기 전에 **metric별 worst-case 값으로 압축**한다.
+- two-stage GF180 op-amp YAML에는 TT 포함 총 17개의 PVT netlist가 존재한다.
+- 현재 확인한 standard runner는 evaluator의 기본값 `pvt=False`를 사용하므로 일반 실행은 **TT-only**다.
+- evaluator 내부 PVT mode는 TT 이후 나머지 corner를 평가하고 optimizer에 전달하기 전에 **metric별 worst-case 값으로 압축**한다.
+- EXP-001의 D000 한 점에서 이미 metric별 worst corner가 서로 달랐다.
+- EXP-002까지 20 design으로 확대해도 metric별 worst corner가 하나의 physical corner로 일치하지 않았다.
 
-따라서 “17 corner를 사용한다”와 “기본 ATLAS run이 17 corner를 모두 사용한다”는 서로 다른 말이다.
+따라서 “17 corner를 평가한다”와 “17 corner의 구조를 optimizer가 그대로 본다”는 서로 다른 말이다.
+
+## EXP-001 + EXP-002 Result Snapshot
+
+통합 dataset:
+
+```text
+20 design points × 17 corners = 340 corner evaluations
+```
+
+Feasibility:
+
+- feasible corner evaluation: **0 / 340**
+- 하나 이상의 corner에서 feasible한 design: **0 / 20**
+- 17 corners 모두 feasible한 robust design: **0 / 20**
+
+Constraint failure frequency:
+
+| Spec | Fail count | Fail rate |
+| --- | ---: | ---: |
+| UGBW | 252 | 74.1% |
+| Output swing | 238 | 70.0% |
+| Gain | 218 | 64.1% |
+| Phase margin | 208 | 61.2% |
+| Settling time | 169 | 49.7% |
+| Bias current | 29 | 8.5% |
+
+TT에서 D000, D007, D008, D009는 6개 spec 중 **phase margin만 실패**했다. 반대로 D002 / D006처럼 phase margin이 충분한 design은 gain, UGBW, output swing이 크게 부족했다.
+
+현재 관찰은 stability와 gain / bandwidth / swing 사이에 강한 trade-off가 있음을 보여준다.
+
+## Worst-Corner Observation
+
+20 designs에서 가장 자주 worst가 된 corner:
+
+- Gain: FF / 3.0 V / 125 C — 15 / 20
+- Ibias: FF / 3.6 V / -40 C — 18 / 20
+- Phase Margin: FS / 3.6 V / -40 C — 13 / 20
+- UGBW: SS / 3.0 V / 125 C — 18 / 20
+
+따라서 worst-case compressed vector는 하나의 실제 physical corner 상태가 아니라 여러 corner의 worst metric을 조합한 synthetic vector가 될 수 있다.
 
 ## Simulation Reproducibility Finding
 
-새 PC에서 ATLAS 실행환경을 재구축하며 동일 TT design point의 반복 결과가 달라지는 문제를 확인했다.
-
-원인은 GF180 `design.ngspice`의 기본 statistical setting이었다.
+GF180 `design.ngspice`의 기본 statistical setting은 다음과 같이 활성화되어 있었다.
 
 ```spice
 sw_stat_global = 1
 sw_stat_mismatch = 1
 ```
 
-이 상태에서는 TT 조건에서도 global process variation과 local mismatch가 랜덤하게 적용되어 반복 실행마다 서로 다른 virtual chip sample이 평가된다.
-
-PVT baseline과 Monte Carlo variation을 분리하기 위해 로컬 GF180 model을 다음과 같이 변경했다.
+PVT 변화와 random process / mismatch variation을 분리하기 위해 현재 PVT baseline에서는 다음처럼 고정한다.
 
 ```spice
 sw_stat_global = 0
 sw_stat_mismatch = 0
 ```
 
-수정 후 동일 netlist 3회 raw CSV hash와 `CircuitEvaluator.evaluate_tt()` 3회 metric이 모두 완전히 동일함을 확인했다.
+수정 후 동일 netlist 반복 실행에서 raw CSV hash와 metric이 동일하게 재현됨을 확인했다.
 
-따라서 현재 baseline 원칙은:
+현재 원칙:
 
 ```text
 PVT study → nominal statistical switches OFF
 Monte Carlo / mismatch study → 별도 실험에서 명시적으로 ON
 ```
 
-상세 기록: `logs/2026-10/2026-10-04.md`
+## Execution Reliability Finding
 
-## Current Questions
+EXP-002에서 D006의 FF / 3.6 V / -40 C corner가 8-way parallel PVT 실행 중 120 s timeout에 걸렸다.
 
-1. PVT mode를 실제로 실행했을 때 각 design point에서 corner별 metric은 어떻게 달라지는가?
-2. 각 metric의 worst corner는 동일한가, 서로 다른가?
-3. worst-case compression으로 인해 corner별 feasible-region 구조가 사라지는가?
-4. 그 정보 손실이 candidate selection 또는 robust feasible design 탐색에 실제 영향을 주는가?
-5. corner-wise 정보를 사용하는 방법이 추가 simulation/모델 복잡도에 비해 충분한 이득을 주는가?
+같은 D006을 corner-wise sequential execution으로 재실행했을 때 17 / 17 corners가 모두 완료됐다.
+
+현재 해석은:
+
+- 해당 design/corner가 본질적으로 simulation 불가능하다는 근거는 없음
+- 병렬 실행 시 resource contention 또는 wall-time 증가가 timeout에 영향을 줬을 가능성이 커짐
+- 원인을 완전히 확정한 것은 아님
+
+따라서 현재 20-point pilot에서는 안정적인 dataset 확보를 우선해 corner-wise sequential execution을 사용했다.
 
 ## Completed
 
@@ -94,8 +138,12 @@ Monte Carlo / mismatch study → 별도 실험에서 명시적으로 ON
 - [x] 새 PC ATLAS/ngspice/GF180 실행환경 연결 확인
 - [x] GF180 기본 statistical variation 활성화로 인한 비결정성 원인 확인
 - [x] statistical switches OFF 후 TT 반복 재현성 확인
-- [x] EXP-001: YAML init_params 1개 design point의 17-corner PVT evaluation 완료
-- [x] 17-corner metric CSV 보존 및 metric별 worst corner 비교
+- [x] EXP-001: D000 17-corner PVT baseline 완료
+- [x] EXP-002: D001-D019 17-corner PVT evaluation 완료
+- [x] EXP-001 + EXP-002 통합 20 designs × 17 corners = 340 evaluations 확보
+- [x] initial 20 designs에서 feasible point 0개 확인
+- [x] metric별 worst corner 불일치가 multi-design에서도 반복됨을 확인
+- [x] D006 parallel timeout을 sequential rerun으로 진단하고 실행 정책 수정
 
 ## Data Policy for Current PVT Study
 
@@ -113,56 +161,63 @@ corner_metrics.csv
 
 모든 corner의 AC/DC/DC-sweep/transient raw CSV를 상시 보존하지 않는다. raw waveform은 이상 metric 진단이나 파형 근거가 필요한 특정 design/corner에서만 선택적으로 재생성한다.
 
+## Current Questions
+
+1. initial 20-point에서 feasible이 0개인 이유는 단순 sample 부족인가, spec trade-off 구조 때문인가?
+2. ATLAS adaptive search는 initial 20 points 이후 어떤 surrogate / acquisition 정보로 다음 candidate를 제안하는가?
+3. TT feasible 또는 near-feasible region을 어떻게 정량적으로 정의할 것인가?
+4. TT에서 확보한 후보를 17-corner PVT로 넘겼을 때 corner별 feasibility가 어떻게 달라지는가?
+5. 충분한 feasible point가 확보되면 worst-case compression과 corner-wise feasible structure의 차이가 candidate selection에 실제 영향을 주는가?
+
 ## Next
 
-### Step 1 — EXP-002: ATLAS initial-design PVT baseline
+### Step 1 — ATLAS post-initial adaptive candidate selection 이해
 
-처음부터 100개의 임의 design point를 평가하지 않는다.
+D000-D019는 optimization 전에 미리 정해지는 initial design set이다.
 
-현재 ATLAS의 GP-based optimizer 기본 initial design은 `n_init=20`이며, YAML `init_params`가 있을 때 다음처럼 구성된다.
+다음 단계에서는 initial 20 points 이후 ATLAS가 실제로 adaptive하게 다음 candidate를 만드는 흐름을 코드로 확인한다.
+
+특히 확인할 항목:
+
+- initial observations가 surrogate에 어떻게 들어가는가
+- acquisition이 어떤 값을 기준으로 candidate를 선택하는가
+- D020 이후 candidate가 어떤 함수에서 생성되는가
+- feasibility information이 candidate selection에 어떻게 반영되는가
+
+### Step 2 — TT feasible / near-feasible search 설계
+
+임의의 100-point PVT sweep을 바로 시작하지 않는다.
+
+Robust feasible design은 반드시 TT에서도 feasible해야 하므로 먼저 TT에서 feasible 또는 feasible boundary에 가까운 candidate를 찾는다.
 
 ```text
-1 point  : init_params
-12 points: init_params 주변 local perturbation
-7 points : global LHS
+initial 20 points
+→ ATLAS adaptive TT search
+→ TT feasible / near-feasible candidates
+→ selected candidates만 17-corner PVT
 ```
 
-EXP-001에서 `D000 = init_params`는 이미 17-corner 평가가 완료되었다.
+이 단계에서 near-feasible의 정량 기준과 저장할 dataset 구조를 먼저 정의한 뒤 실행한다.
 
-따라서 EXP-002에서는 `D001-D019` **19개 design point만 추가 평가**해 ATLAS의 실제 20-point initial set 전체를 PVT dataset으로 만든다.
+### Step 3 — Selected Candidate PVT Evaluation
 
-실험 폴더: `experiments/EXP-002_atlas_initial_design_pvt/`
+TT에서 찾은 모든 candidate를 무조건 PVT 평가하지 않는다.
 
-저장 구조:
+TT feasible 또는 boundary 근처 point를 선정해 17 corners에서 다음을 비교한다.
 
-```text
-design_points.csv
-design_id | wp1 | wn1 | wp3 | wn3 | wn4 | wn5 | cc
-
-corner_metrics.csv
-design_id | corner | gain | ugbw | phm | ibias | t_settle | vswing | feasible
-```
-
-목적은 feasible / infeasible point가 섞이는지 먼저 확인하고 corner별 feasible set 분석을 확대할 근거를 얻는 것이다.
-
-20-point 결과를 본 뒤에만 50/100 points 확대 여부를 결정한다. feasible point가 거의 없다면 무작정 sample 수를 늘리지 않고 sampling 범위 또는 방법을 다시 검토한다.
-
-### Step 2 — Corner-wise structure observation
-
-각 design point에서:
-
-- corner별 feasibility
+- corner-wise feasibility
+- spec margin
 - metric별 worst corner
-- worst-case compressed vector
+- robust feasibility
 
-를 비교하고, design space 전체에서는 corner별 feasible set의 이동·겹침·분리를 관찰한다.
+### Step 4 — Feasible-Island Analysis 확대 판단
 
-### Step 3 — Feasible-island analysis 조건 판단
+corner별 feasible point가 충분히 확보된 이후에만 50/100-point dataset 확대와 feasible-island topology / persistence 분석을 시작한다.
 
-충분한 feasible point가 확보된 이후에만 island topology를 분석한다. EXP-001의 한 design point만으로 island 존재나 persistence를 결론 내리지 않는다.
+여전히 feasible point가 거의 없다면 sample 수를 늘리기 전에 parameter range, spec trade-off, ATLAS candidate trajectory를 먼저 분석한다.
 
 ## Working Principle
 
 다음 명령을 실행하는 것 자체가 목적이 아니다.
 
-PVT simulation을 시작하기 전에 반드시 **왜 이 데이터를 뽑는지, 어떤 결과가 나오면 가설을 지지하거나 반박하는지**를 이해하고 진행한다.
+새 simulation을 시작하기 전에 반드시 **왜 이 데이터를 뽑는지, 어떤 결과가 나오면 가설을 지지하거나 반박하는지, 그 결과가 다음 판단에 어떻게 연결되는지**를 이해하고 진행한다.
