@@ -7,10 +7,10 @@
 - Host: Windows + WSL2
 - Linux: Ubuntu 22.04
 - Conda environment: `atlas`
-- Python: 3.10
-- ATLAS: `youngmin0oh/atlas`
-- Simulator: ngspice 44.2
-- PDK: GF180 primitive ngspice model
+- Python: 3.10.22
+- ATLAS: `youngmin0oh/atlas` @ `dd23c5ba7beb598909be593e4a84c81dab92cc69`
+- Simulator: ngspice 44.2 (KLU Direct Linear Solver build)
+- PDK: GF180 primitive ngspice model @ `9f992d5a9186d1f7820c58f039c484ad35b2edea`
 - PDK root: `$HOME/pdks`
 - Environment variable: `PDK_ROOT=$HOME/pdks`
 
