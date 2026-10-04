@@ -1,0 +1,12 @@
+# Direct Python dependencies used by ATLAS on the validated environment
+# EXP-001 environment: Python 3.10.22
+numpy==2.2.6
+scipy==1.15.3
+PyYAML==6.0.3
+scikit-learn==1.7.2
+torch==2.14.1
+botorch==0.16.1
+gpytorch==1.15.2
+networkx==3.4.2
+kmapper==2.1.0
+cma==4.5.0
