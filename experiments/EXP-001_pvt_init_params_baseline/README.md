@@ -128,7 +128,9 @@ ngspice가 내부적으로 생성하는 AC/DC/DC-sweep/transient raw CSV는 모�
 - 17개 corner가 모두 infeasible이므로 이 실험만으로 feasible-island의 위치, 크기, 이동 또는 persistence를 판단할 수 없다.
 - 따라서 이번 결과는 corner-wise evaluation 동작과 metric별 worst-corner 차이를 확인한 baseline으로 해석한다.
 
-## Next Experiment
+## Next Experiment at Completion
+
+EXP-001 완료 시점의 다음 계획은 다음과 같았다.
 
 다음 PVT dataset에서는:
 
