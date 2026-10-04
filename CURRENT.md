@@ -99,7 +99,17 @@ Monte Carlo / mismatch study → 별도 실험에서 명시적으로 ON
 
 ## Data Policy for Current PVT Study
 
-현재 feasible-region / feasible-island 분석의 핵심 데이터는 **design point별 17-corner metric과 feasibility를 담은 table**이다.
+현재 feasible-region / feasible-island 분석의 핵심 데이터는 두 table이다.
+
+```text
+design_points.csv
+→ design_id별 transistor sizing / compensation capacitor 값
+
+corner_metrics.csv
+→ design_id × 17 PVT corner별 metric / feasibility
+```
+
+두 파일은 `design_id`로 연결한다.
 
 모든 corner의 AC/DC/DC-sweep/transient raw CSV를 상시 보존하지 않는다. raw waveform은 이상 metric 진단이나 파형 근거가 필요한 특정 design/corner에서만 선택적으로 재생성한다.
 
@@ -109,9 +119,13 @@ Monte Carlo / mismatch study → 별도 실험에서 명시적으로 ON
 
 여러 design point를 정의하고 각 point에 대해 17개 corner를 평가한다.
 
-최소 table:
+저장 구조:
 
 ```text
+design_points.csv
+design_id | wp1 | wn1 | wp3 | wn3 | wn4 | wn5 | cc
+
+corner_metrics.csv
 design_id | corner | gain | ugbw | phm | ibias | t_settle | vswing | feasible
 ```
 
