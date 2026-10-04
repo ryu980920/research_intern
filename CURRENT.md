@@ -8,7 +8,7 @@ _Last updated: 2026-10-04_
 
 ## Current Stage
 
-**Baseline PVT representation analysis**
+**Baseline PVT representation analysis — first 17-corner run completed**
 
 ATLAS의 기본 실행 흐름을 실제 코드로 추적했고, design parameter → SPICE → metric → surrogate/acquisition → next candidate 연결을 확인했다.
 
@@ -94,49 +94,42 @@ Monte Carlo / mismatch study → 별도 실험에서 명시적으로 ON
 - [x] 새 PC ATLAS/ngspice/GF180 실행환경 연결 확인
 - [x] GF180 기본 statistical variation 활성화로 인한 비결정성 원인 확인
 - [x] statistical switches OFF 후 TT 반복 재현성 확인
+- [x] EXP-001: YAML init_params 1개 design point의 17-corner PVT evaluation 완료
+- [x] 17-corner metric CSV 보존 및 metric별 worst corner 비교
 
 ## Next
 
-### Step 1 — PVT baseline 실행 준비
+### Step 1 — EXP-001 보완: raw output 보존 방식 준비
 
-처음부터 optimization 전체를 PVT로 돌리지 않는다.
+EXP-001에서 17-corner metric table은 확보했지만, wrapper가 temporary directory를 삭제해 각 corner의 `ac.csv`, `dc.csv`, `dc_sweep.csv`, `tran.csv`는 남지 않았다.
 
-먼저 **소수 design point**에 대해 PVT evaluation을 수행해 코드와 결과 형식을 검증한다.
+다음 multi-point PVT dataset을 만들기 전에 raw output을 보존하도록 실행 방식을 수정한다.
 
-사전 조건:
+### Step 2 — Multi-design-point PVT baseline dataset
 
-- GF180 statistical variation은 OFF (`sw_stat_global=0`, `sw_stat_mismatch=0`)
-- PVT 변화와 Monte Carlo/mismatch variation을 혼합하지 않는다.
+여러 design point를 정의하고 각 point에 대해 17개 corner를 평가한다.
 
-확인해야 할 것:
-
-- 17개 corner가 실제로 정상 실행되는가?
-- corner별 raw metric을 어떻게 보존할 것인가?
-- 한 design point당 simulation 시간이 어느 정도 증가하는가?
-
-### Step 2 — Corner-wise dataset 생성
-
-최소한 다음 형태의 table을 만든다.
+최소 table:
 
 ```text
 design_id | corner | gain | ugbw | phm | ibias | t_settle | vswing | feasible
 ```
 
-이 데이터가 있어야 worst-case compression 전후를 실제로 비교할 수 있다.
+목적은 feasible / infeasible point가 섞이는 영역을 확보해 corner별 feasible set을 비교하는 것이다.
 
-### Step 3 — Baseline observation
+### Step 3 — Corner-wise structure observation
 
 각 design point에서:
 
-- metric별 worst corner
 - corner별 feasibility
+- metric별 worst corner
 - worst-case compressed vector
 
-를 비교한다.
+를 비교하고, design space 전체에서는 corner별 feasible set의 이동·겹침·분리를 관찰한다.
 
-### Step 4 — EXP-001 결정
+### Step 4 — Feasible-island analysis 조건 판단
 
-PVT baseline 관찰 결과에서 실제 정보 손실 또는 구조적 차이가 확인될 때 첫 정식 Research Question과 `EXP-001`을 정의한다.
+충분한 feasible point가 확보된 이후에만 island topology를 분석한다. EXP-001의 한 design point만으로 island 존재나 persistence를 결론 내리지 않는다.
 
 ## Working Principle
 
