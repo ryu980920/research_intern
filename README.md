@@ -13,6 +13,22 @@ InfiniTree 연구 인턴 과정에서 수행하는 **아날로그 회로 강건�
 
 **Research Question → Condition/Config → Code → Simulation → Metric Dataset → Interpretation → Next Decision**
 
+## Current Snapshot
+
+Latest completed experiment: `EXP-002_atlas_initial_design_pvt`
+
+```text
+ATLAS initial 20 design points
+× 17 PVT corners
+= 340 corner evaluations
+```
+
+현재 결과에서는 feasible evaluation이 0 / 340이었으며, metric별 worst corner가 서로 다른 현상은 multi-design에서도 반복 확인됐다.
+
+따라서 다음 단계는 임의 PVT sample 수를 바로 늘리는 것이 아니라 **ATLAS adaptive TT search를 통해 feasible / near-feasible region을 먼저 찾는 것**이다.
+
+최신 연구 상태와 다음 판단은 `CURRENT.md`를 기준으로 한다.
+
 ## Repository Structure
 
 ```text
