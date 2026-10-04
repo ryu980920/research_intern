@@ -4,6 +4,7 @@
 
 - YAML: `eval_engines/ngspice/ngspice_inputs/yaml_files/two_stage_opamp_gf180.yaml`
 - Circuit: two-stage GF180 op-amp
+- Design ID: `D000`
 - Design point source: YAML `init_params`
 
 ## init_params
