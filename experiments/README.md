@@ -19,8 +19,8 @@ EXP-001_xxx/
 
 `raw/`와 `figures/`는 기본 폴더로 강제하지 않습니다.
 
-- raw waveform이 특정 이상 결과의 원인 분석이나 근거 제시에 필요할 때만 `raw/`를 만든다.
-- 실제 분석/발표에 필요한 figure가 생길 때만 `figures/`를 만든다.
+- raw waveform이 특정 이상 결과의 원인 분석이나 근거 제시에 필요할 때만 `raw/`를 만듭니다.
+- 실제 분석/발표에 필요한 figure가 생길 때만 `figures/`를 만듭니다.
 
 각 Experiment README에는 가능한 경우 다음 내용을 포함합니다.
 
