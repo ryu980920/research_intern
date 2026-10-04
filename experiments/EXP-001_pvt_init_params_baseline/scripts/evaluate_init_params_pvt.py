@@ -52,7 +52,7 @@ for row in rows:
     print(row)
 
 out_path = os.path.expanduser(
-    "~/research_intern/data/raw/pvt_init_params_corner_metrics.csv"
+    "~/research_intern/experiments/EXP-001_pvt_init_params_baseline/data/corner_metrics.csv"
 )
 
 os.makedirs(os.path.dirname(out_path), exist_ok=True)
