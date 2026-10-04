@@ -42,6 +42,37 @@ YAML parameter range
 
 따라서 “17 corner를 사용한다”와 “기본 ATLAS run이 17 corner를 모두 사용한다”는 서로 다른 말이다.
 
+## Simulation Reproducibility Finding
+
+새 PC에서 ATLAS 실행환경을 재구축하며 동일 TT design point의 반복 결과가 달라지는 문제를 확인했다.
+
+원인은 GF180 `design.ngspice`의 기본 statistical setting이었다.
+
+```spice
+sw_stat_global = 1
+sw_stat_mismatch = 1
+```
+
+이 상태에서는 TT 조건에서도 global process variation과 local mismatch가 랜덤하게 적용되어 반복 실행마다 서로 다른 virtual chip sample이 평가된다.
+
+PVT baseline과 Monte Carlo variation을 분리하기 위해 로컬 GF180 model을 다음과 같이 변경했다.
+
+```spice
+sw_stat_global = 0
+sw_stat_mismatch = 0
+```
+
+수정 후 동일 netlist 3회 raw CSV hash와 `CircuitEvaluator.evaluate_tt()` 3회 metric이 모두 완전히 동일함을 확인했다.
+
+따라서 현재 baseline 원칙은:
+
+```text
+PVT study → nominal statistical switches OFF
+Monte Carlo / mismatch study → 별도 실험에서 명시적으로 ON
+```
+
+상세 기록: `logs/2026-10/2026-10-04.md`
+
 ## Current Questions
 
 1. PVT mode를 실제로 실행했을 때 각 design point에서 corner별 metric은 어떻게 달라지는가?
@@ -60,6 +91,9 @@ YAML parameter range
 - [x] metric → surrogate / ATLAS candidate selection 연결 확인
 - [x] 기본 runner의 TT-only 동작 확인
 - [x] evaluator의 PVT worst-case aggregation 방식 확인
+- [x] 새 PC ATLAS/ngspice/GF180 실행환경 연결 확인
+- [x] GF180 기본 statistical variation 활성화로 인한 비결정성 원인 확인
+- [x] statistical switches OFF 후 TT 반복 재현성 확인
 
 ## Next
 
@@ -68,6 +102,11 @@ YAML parameter range
 처음부터 optimization 전체를 PVT로 돌리지 않는다.
 
 먼저 **소수 design point**에 대해 PVT evaluation을 수행해 코드와 결과 형식을 검증한다.
+
+사전 조건:
+
+- GF180 statistical variation은 OFF (`sw_stat_global=0`, `sw_stat_mismatch=0`)
+- PVT 변화와 Monte Carlo/mismatch variation을 혼합하지 않는다.
 
 확인해야 할 것:
 
