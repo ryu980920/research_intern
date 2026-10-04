@@ -13,6 +13,8 @@ e = CircuitEvaluator(
     pvt=True
 )
 
+design_id = "D000"
+
 x = e._round_params(e.init_params)
 state = OrderedDict(zip(e.param_names, x.tolist()))
 
@@ -23,6 +25,7 @@ _, specs_list, _ = e.sim_env.run(state)
 tt = e._remap_specs(specs_list[0])
 
 rows.append({
+    "design_id": design_id,
     "corner": "TT_3.3V_27C",
     **tt,
     "feasible": check_feasibility(tt, e.constraints, e.directions)
@@ -43,6 +46,7 @@ for name, sim in zip(e.corner_names, e.corner_sims):
     short_name = f"{process}_{voltage}_{temperature}"
 
     rows.append({
+        "design_id": design_id,
         "corner": short_name,
         **specs,
         "feasible": check_feasibility(specs, e.constraints, e.directions)
@@ -51,13 +55,27 @@ for name, sim in zip(e.corner_names, e.corner_sims):
 for row in rows:
     print(row)
 
-out_path = os.path.expanduser(
-    "~/research_intern/experiments/EXP-001_pvt_init_params_baseline/data/corner_metrics.csv"
+data_dir = os.path.expanduser(
+    "~/research_intern/experiments/EXP-001_pvt_init_params_baseline/data"
 )
+os.makedirs(data_dir, exist_ok=True)
 
-os.makedirs(os.path.dirname(out_path), exist_ok=True)
+design_points_path = os.path.join(data_dir, "design_points.csv")
+corner_metrics_path = os.path.join(data_dir, "corner_metrics.csv")
+
+with open(design_points_path, "w", newline="") as f:
+    writer = csv.DictWriter(
+        f,
+        fieldnames=["design_id", *e.param_names],
+    )
+    writer.writeheader()
+    writer.writerow({
+        "design_id": design_id,
+        **dict(state),
+    })
 
 fieldnames = [
+    "design_id",
     "corner",
     "gain_min",
     "ibias_max",
@@ -68,10 +86,11 @@ fieldnames = [
     "feasible",
 ]
 
-with open(out_path, "w", newline="") as f:
+with open(corner_metrics_path, "w", newline="") as f:
     writer = csv.DictWriter(f, fieldnames=fieldnames)
     writer.writeheader()
     writer.writerows(rows)
 
 print()
-print("Saved:", out_path)
+print("Saved:", design_points_path)
+print("Saved:", corner_metrics_path)
