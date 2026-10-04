@@ -115,9 +115,23 @@ corner_metrics.csv
 
 ## Next
 
-### Step 1 — Multi-design-point PVT baseline dataset
+### Step 1 — EXP-002: ATLAS initial-design PVT baseline
 
-여러 design point를 정의하고 각 point에 대해 17개 corner를 평가한다.
+처음부터 100개의 임의 design point를 평가하지 않는다.
+
+현재 ATLAS의 GP-based optimizer 기본 initial design은 `n_init=20`이며, YAML `init_params`가 있을 때 다음처럼 구성된다.
+
+```text
+1 point  : init_params
+12 points: init_params 주변 local perturbation
+7 points : global LHS
+```
+
+EXP-001에서 `D000 = init_params`는 이미 17-corner 평가가 완료되었다.
+
+따라서 EXP-002에서는 `D001-D019` **19개 design point만 추가 평가**해 ATLAS의 실제 20-point initial set 전체를 PVT dataset으로 만든다.
+
+실험 폴더: `experiments/EXP-002_atlas_initial_design_pvt/`
 
 저장 구조:
 
@@ -129,7 +143,9 @@ corner_metrics.csv
 design_id | corner | gain | ugbw | phm | ibias | t_settle | vswing | feasible
 ```
 
-목적은 feasible / infeasible point가 섞이는 영역을 확보해 corner별 feasible set을 비교하는 것이다.
+목적은 feasible / infeasible point가 섞이는지 먼저 확인하고 corner별 feasible set 분석을 확대할 근거를 얻는 것이다.
+
+20-point 결과를 본 뒤에만 50/100 points 확대 여부를 결정한다. feasible point가 거의 없다면 무작정 sample 수를 늘리지 않고 sampling 범위 또는 방법을 다시 검토한다.
 
 ### Step 2 — Corner-wise structure observation
 
