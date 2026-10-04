@@ -1,0 +1,7 @@
+metric,fail_count,fail_rate
+gain_min,218,0.641176
+ibias_max,29,0.085294
+phm_min,208,0.611765
+t_settle_max,169,0.497059
+ugbw_min,252,0.741176
+vswing_min,238,0.700000
