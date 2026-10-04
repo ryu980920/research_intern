@@ -48,11 +48,12 @@ sw_stat_mismatch = 0
 
 Reason: isolate deterministic PVT response from Monte Carlo process/mismatch variation.
 
-## Reproducibility identifiers still to capture
+## Reproducibility Identifiers
 
-The following local-environment fingerprints should be added after checking the actual machine:
+- ATLAS commit SHA: `dd23c5ba7beb598909be593e4a84c81dab92cc69`
+- GF180 PDK commit SHA: `9f992d5a9186d1f7820c58f039c484ad35b2edea`
+- ngspice: `ngspice-44.2`
+- ngspice solver build: `KLU Direct Linear Solver`
+- Python: `3.10.22`
 
-- local ATLAS commit SHA
-- local GF180 PDK commit SHA
-- exact `ngspice --version` output
-- exact `python --version` output
+These identifiers correspond to the local environment used for EXP-001.
