@@ -11,7 +11,7 @@ if ATLAS_ROOT not in sys.path:
 os.chdir(ATLAS_ROOT)
 
 from topbo.circuit_eval import CircuitEvaluator
-from topbo.optimizers import ATLAS
+from topbo.optimizers import TopoBO
 from topbo.utils import check_feasibility
 
 
@@ -118,7 +118,7 @@ def main():
     )
 
     # Reproduce the ATLAS default initial-design set exactly.
-    atlas = ATLAS()
+    atlas = TopoBO()
     x_init = atlas._initial_design(
         evaluator,
         evaluator.param_bounds,
