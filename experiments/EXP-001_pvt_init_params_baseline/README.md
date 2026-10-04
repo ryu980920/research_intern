@@ -55,17 +55,22 @@ Target specifications:
 2. 동일한 `init_params`를 TT와 나머지 16개 corner에 각각 입력했다.
 3. 각 corner에서 gain, Ibias, PM, settling time, UGBW, output swing을 추출했다.
 4. 각 corner가 target specification을 모두 만족하는지 판정했다.
-5. 17개 결과를 하나의 corner-wise metric CSV로 저장했다.
+5. 설계 파라미터는 `design_points.csv`, 17개 corner metric은 `corner_metrics.csv`로 분리해 저장했다.
 
 실행 스크립트: `scripts/evaluate_init_params_pvt.py`
 
 ## Data
 
-Primary result dataset:
+Primary result datasets:
 
+- `data/design_points.csv`
+  - 1 row = D000
+  - columns: design_id, wp1, wn1, wp3, wn3, wn4, wn5, cc
 - `data/corner_metrics.csv`
-- 17 rows = 17 PVT corners
-- columns: corner, gain, Ibias, PM, settling, UGBW, Vswing, feasible
+  - 17 rows = D000의 17 PVT corners
+  - columns: design_id, corner, gain, Ibias, PM, settling, UGBW, Vswing, feasible
+
+두 파일은 `design_id`로 연결한다. 설계 파라미터와 PVT 결과를 분리해 같은 파라미터가 17번 반복 저장되는 것을 피한다.
 
 ## Results
 
@@ -111,7 +116,7 @@ PVT worst-case compression으로 만든 spec vector는 하나의 실제 corner �
 
 ## Data Retention
 
-본 실험의 연구 판단에 직접 필요한 결과는 `data/corner_metrics.csv`에 보존한다.
+본 실험의 연구 판단에 직접 필요한 결과는 `data/design_points.csv`와 `data/corner_metrics.csv`에 보존한다.
 
 ngspice가 내부적으로 생성하는 AC/DC/DC-sweep/transient raw CSV는 모든 corner에 대해 상시 보존하지 않는다. feasible-region 분석에는 corner-wise metric과 feasibility가 직접 사용되며, 모든 raw waveform을 저장하면 design point 수가 증가할수록 파일 관리 비용이 크게 늘어나기 때문이다.
 
@@ -129,6 +134,6 @@ ngspice가 내부적으로 생성하는 AC/DC/DC-sweep/transient raw CSV는 모�
 
 1. 여러 design point를 정의한다.
 2. 각 point에 `design_id`를 부여한다.
-3. 각 design point의 17-corner metric과 feasibility를 하나의 분석용 table로 누적한다.
+3. 설계 파라미터는 `design_points.csv`에 1행씩, 각 design point의 17-corner metric과 feasibility는 `corner_metrics.csv`에 17행씩 누적한다.
 4. feasible / infeasible point가 함께 나타나는 영역을 확보한다.
 5. 충분한 데이터가 모인 뒤 corner-wise feasible set과 worst-case compressed representation을 비교한다.
