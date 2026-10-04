@@ -97,15 +97,15 @@ Monte Carlo / mismatch study → 별도 실험에서 명시적으로 ON
 - [x] EXP-001: YAML init_params 1개 design point의 17-corner PVT evaluation 완료
 - [x] 17-corner metric CSV 보존 및 metric별 worst corner 비교
 
+## Data Policy for Current PVT Study
+
+현재 feasible-region / feasible-island 분석의 핵심 데이터는 **design point별 17-corner metric과 feasibility를 담은 table**이다.
+
+모든 corner의 AC/DC/DC-sweep/transient raw CSV를 상시 보존하지 않는다. raw waveform은 이상 metric 진단이나 파형 근거가 필요한 특정 design/corner에서만 선택적으로 재생성한다.
+
 ## Next
 
-### Step 1 — EXP-001 보완: raw output 보존 방식 준비
-
-EXP-001에서 17-corner metric table은 확보했지만, wrapper가 temporary directory를 삭제해 각 corner의 `ac.csv`, `dc.csv`, `dc_sweep.csv`, `tran.csv`는 남지 않았다.
-
-다음 multi-point PVT dataset을 만들기 전에 raw output을 보존하도록 실행 방식을 수정한다.
-
-### Step 2 — Multi-design-point PVT baseline dataset
+### Step 1 — Multi-design-point PVT baseline dataset
 
 여러 design point를 정의하고 각 point에 대해 17개 corner를 평가한다.
 
@@ -117,7 +117,7 @@ design_id | corner | gain | ugbw | phm | ibias | t_settle | vswing | feasible
 
 목적은 feasible / infeasible point가 섞이는 영역을 확보해 corner별 feasible set을 비교하는 것이다.
 
-### Step 3 — Corner-wise structure observation
+### Step 2 — Corner-wise structure observation
 
 각 design point에서:
 
@@ -127,7 +127,7 @@ design_id | corner | gain | ugbw | phm | ibias | t_settle | vswing | feasible
 
 를 비교하고, design space 전체에서는 corner별 feasible set의 이동·겹침·분리를 관찰한다.
 
-### Step 4 — Feasible-island analysis 조건 판단
+### Step 3 — Feasible-island analysis 조건 판단
 
 충분한 feasible point가 확보된 이후에만 island topology를 분석한다. EXP-001의 한 design point만으로 island 존재나 persistence를 결론 내리지 않는다.
 
