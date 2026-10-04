@@ -70,6 +70,7 @@ def evaluate_all_corners(evaluator, state, design_id):
     rows = []
 
     # TT
+    print(f"  [CORNER] {design_id} - TT_3.3V_27C")
     _, specs_list, _ = evaluator.sim_env.run(state)
     tt = evaluator._remap_specs(specs_list[0])
     rows.append({
@@ -81,19 +82,26 @@ def evaluate_all_corners(evaluator, state, design_id):
         ),
     })
 
-    # Remaining 16 corners. CircuitEvaluator configures up to 8 in parallel.
-    _, pvt_specs_list, _ = evaluator.sim_env_pvt.run(state)
+    # Remaining 16 corners are evaluated sequentially.
+    # EXP-002 D006 timed out when up to 8 corners ran in parallel,
+    # but the same D006 completed all 17 corners sequentially.
+    # Keep the pilot deterministic and reliable before tuning parallelism.
+    for name, sim in zip(evaluator.corner_names, evaluator.corner_sims):
+        corner = short_corner_name(name)
+        print(f"  [CORNER] {design_id} - {corner}")
 
-    for name, raw_specs in zip(evaluator.corner_names, pvt_specs_list):
+        _, specs_list, _ = sim.run(state)
+        raw_specs = specs_list[0]
+
         if raw_specs is None:
             raise RuntimeError(
-                f"{design_id}: simulation failed at corner {name}"
+                f"{design_id}: simulation failed at corner {corner}"
             )
 
         specs = evaluator._remap_specs(raw_specs)
         rows.append({
             "design_id": design_id,
-            "corner": short_corner_name(name),
+            "corner": corner,
             **specs,
             "feasible": check_feasibility(
                 specs, evaluator.constraints, evaluator.directions
