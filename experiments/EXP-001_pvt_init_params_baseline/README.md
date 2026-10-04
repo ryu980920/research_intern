@@ -61,7 +61,7 @@ Target specifications:
 
 ## Data
 
-Processed corner-wise metrics:
+Primary result dataset:
 
 - `data/corner_metrics.csv`
 - 17 rows = 17 PVT corners
@@ -109,18 +109,26 @@ PVT worst-case compression으로 만든 spec vector는 하나의 실제 corner �
 
 > worst-case compression이 corner별 feasible-region 구조를 얼마나 지우는가?
 
+## Data Retention
+
+본 실험의 연구 판단에 직접 필요한 결과는 `data/corner_metrics.csv`에 보존한다.
+
+ngspice가 내부적으로 생성하는 AC/DC/DC-sweep/transient raw CSV는 모든 corner에 대해 상시 보존하지 않는다. feasible-region 분석에는 corner-wise metric과 feasibility가 직접 사용되며, 모든 raw waveform을 저장하면 design point 수가 증가할수록 파일 관리 비용이 크게 늘어나기 때문이다.
+
+특정 metric의 이상값을 진단하거나 waveform 자체가 근거로 필요한 경우에는 해당 design/corner만 동일 config로 재실행해 raw waveform을 선택적으로 보존한다.
+
 ## Limitations
 
-이번 최초 실행에서는 각 corner의 ngspice raw waveform 파일(`ac.csv`, `dc.csv`, `dc_sweep.csv`, `tran.csv`)을 보존하지 못했다. 현재 wrapper가 metric을 읽은 뒤 temporary design directory를 삭제하기 때문이다.
-
-따라서 이 EXP의 numerical metric은 보존되어 있지만 특정 corner의 waveform까지 역추적하는 데는 제한이 있다.
+- design point가 YAML `init_params` 한 점뿐이다.
+- 17개 corner가 모두 infeasible이므로 이 실험만으로 feasible-island의 위치, 크기, 이동 또는 persistence를 판단할 수 없다.
+- 따라서 이번 결과는 corner-wise evaluation 동작과 metric별 worst-corner 차이를 확인한 baseline으로 해석한다.
 
 ## Next Experiment
 
-다음 PVT dataset부터는:
+다음 PVT dataset에서는:
 
 1. 여러 design point를 정의한다.
-2. design_id를 부여한다.
-3. 17-corner metric table을 누적한다.
-4. corner별 raw AC/DC/DC-sweep/transient 데이터를 보존할 수 있도록 실행 방식을 수정한다.
-5. corner-wise feasible set이 형성되기 시작하면 island 구조를 분석한다.
+2. 각 point에 `design_id`를 부여한다.
+3. 각 design point의 17-corner metric과 feasibility를 하나의 분석용 table로 누적한다.
+4. feasible / infeasible point가 함께 나타나는 영역을 확보한다.
+5. 충분한 데이터가 모인 뒤 corner-wise feasible set과 worst-case compressed representation을 비교한다.
