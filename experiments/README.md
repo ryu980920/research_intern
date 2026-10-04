@@ -37,3 +37,20 @@ EXP-001_xxx/
 - Next Experiment
 
 단순한 환경 확인이나 작은 시행착오는 바로 Experiment 번호를 부여하지 않고 먼저 `logs/`에 기록할 수 있습니다.
+
+
+## PVT Sizing Dataset Convention
+
+여러 design point를 PVT에서 비교하는 실험은 가능한 경우 다음 두 table을 사용합니다.
+
+```text
+data/
+├─ design_points.csv
+└─ corner_metrics.csv
+```
+
+- `design_points.csv`: design_id와 설계 파라미터를 1 design당 1행으로 저장
+- `corner_metrics.csv`: design_id × PVT corner별 metric과 feasibility를 저장
+- 두 파일은 `design_id`로 연결
+
+이 구조는 transistor parameter를 corner 수만큼 반복 저장하지 않으면서도, 특정 design과 모든 PVT 결과를 추적할 수 있게 합니다.
