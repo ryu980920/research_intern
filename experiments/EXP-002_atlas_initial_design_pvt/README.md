@@ -89,14 +89,27 @@ D006 diagnostic script:
 ```text
 data/
 ├─ design_points.csv
-└─ corner_metrics.csv
+├─ corner_metrics.csv
+└─ analysis/
+   ├─ design_summary.csv
+   ├─ corner_summary.csv
+   ├─ constraint_failure_summary.csv
+   ├─ worst_corner_frequency.csv
+   └─ near_feasible_tt.csv
 ```
 
 - `design_points.csv`: EXP-002에서 새로 평가한 D001-D019의 parameter
 - `corner_metrics.csv`: 각 design_id의 17-corner metric / feasibility
 - EXP-001의 D000은 중복 저장하지 않는다.
+- `analysis/`: EXP-001 D000 + EXP-002 D001-D019를 합쳐 계산한 derived summary tables
 
-두 CSV는 `design_id`로 연결한다.
+두 primary CSV는 `design_id`로 연결한다.
+
+분석 재현 스크립트:
+
+`scripts/analyze_initial_design_pvt.py`
+
+이 스크립트는 EXP-001과 EXP-002의 committed `corner_metrics.csv`를 읽어 340 evaluations를 검증하고 `data/analysis/`의 summary tables를 재생성한다.
 
 D006 timeout 진단 결과는 다음에 별도 보존했다.
 
