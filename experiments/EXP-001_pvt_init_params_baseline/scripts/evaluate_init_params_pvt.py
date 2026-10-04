@@ -1,6 +1,12 @@
 import os
 import csv
+import sys
 from collections import OrderedDict
+
+ATLAS_ROOT = os.environ.get("ATLAS_ROOT", os.path.expanduser("~/atlas"))
+if ATLAS_ROOT not in sys.path:
+    sys.path.insert(0, ATLAS_ROOT)
+os.chdir(ATLAS_ROOT)
 
 from topbo.circuit_eval import CircuitEvaluator
 from topbo.utils import check_feasibility
