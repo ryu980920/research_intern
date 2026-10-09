@@ -65,6 +65,16 @@ python experiments/EXP-006_atlas_release_baseline_reproduction/scripts/run_relea
 
 `[SAFE] No files changed, no new SPICE` 메시지를 확인하면 됨. **여기서 멈추고 결과를 공유**한다. 전체 500회 실행은 그 뒤 별도 결정.
 
+### GP training-value policy locked before execution
+
+**EXP-006 기준선:** 공개 ATLAS의 결과 추출기가 반환한 `Y_dict`를 수정 없이 GP에 학습시킨다. Settling fallback, UGBW/PM sentinel, `NaN→0` 원본 GP 처리 등 **현재 release의 구현 동작을 그대로 보존**한다. 이는 방법론이 더 좋다는 주장과 무관하며, 배제하면 재현 대상 baseline 자체가 바뀌기 때문이다.
+
+**분리되는 두 검증 질문:** (a) 공개 ATLAS가 원본 처리로 500회 이내 first feasible을 찾는가(이번 EXP), (b) **실패 상태를 인지하는 새 학습 정책**이 같은 SPICE budget에서 탐색을 개선하는가(후속 별도 EXP, 이번 실험 아님).
+
+**결과 해석 주의:** `feasible=True`는 extractor가 반환한 수치를 기반으로 한 기준선 판정이다. 신규 feasible 후보는 phase margin/UGBW crossing 및 transient settling extraction의 **측정 유효성**을 추가로 확인한 뒤 `verified feasible`이라고 부른다. 기존 ATLAS는 별도의 failure flag를 로깅하지 않으므로 기록된 sentinel과 transient horizon 초과로 알 수 있는 일부 경우와 **미확인 값**을 구분하며 실패 비율을 임의로 추정하지 않는다.
+
+**원본 코드 근거:** `topbo/optimizers.py`의 `Y_data` 누적 및 `model.fit(X_data,Y_np)`, `topbo/gp_model.py`의 `y_clean = np.nan_to_num(y, nan=0.0)`. 구체적 결정은 [config/run_config.md](config/run_config.md)의 failure-label policy 참조.
+
 ## 05. Metrics & Evaluation Criteria
 
 - `success`: 동일 설계점의 **6개 실제 TT Spec을 모두 통과**했는지.
