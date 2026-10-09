@@ -54,7 +54,7 @@ EXP-XXX_name/
 | [EXP-001](EXP-001_pvt_init_params_baseline/README.md) | **Completed** | D000 한 점에서 corner-wise worst-corner 차이 검증 | 0/17 feasible; 서로 다른 metric의 worst corner 불일치 → 설계점 확대 |
 | [EXP-002](EXP-002_atlas_initial_design_pvt/README.md) | **Completed** | ATLAS initial 20점으로 corner-wise 결과 확장 | D001–D019의 323회 추가; EXP-001과 합쳐 0/340 feasible → TT 탐색 필요 |
 | [EXP-003](EXP-003_tt_adaptive_feasible_discovery/README.md) | **Completed** | GP 기반 Adaptive TT 설계로 first-feasible 탐색 | 0/60 feasible; D050 5/6 pass, worst margin -0.0973 → PM–UGBW bottleneck 및 탐색 확대 |
-| [EXP-004](EXP-004_warm_start_smoke_test/README.md) | **Prepared** | EXP-003의 TT 60개 관측치로 GP Warm Start 기능 검증 | 60개 replay + 신규 D060 TT SPICE **1회 예정**; 실행 후 EXP-005 예산 확대 판단 |
+| [EXP-004](EXP-004_warm_start_smoke_test/README.md) | **Completed** | EXP-003의 TT 60개 관측치로 GP Warm Start 기능 검증 | **60개 replay / 신규 D060 1개 평가** 성공; D060 5/6 pass(PM 38.11°), GP PM 예측 약 60° → EXP-005에서 예측 성능 검증 병행 |
 
 ### 현재 연구 흐름
 
@@ -67,7 +67,7 @@ EXP-002: initial 20 designs × 17 corners → feasible 0
    ↓
 EXP-003: TT initial20 + adaptive40 → feasible 0, best D050
    ↓
-EXP-004: 이전 실측 60개 Warm Start + 신규 D060 1회 (검증 예정)
+EXP-004: 이전 실측 60개 Warm Start + 신규 D060 1회 (기능 성공, TT feasible 0)
    ↓
 EXP-005: Warm Start 검증 후 신규 평가 횟수 확대 / PM–UGBW 탐색
    ↓
