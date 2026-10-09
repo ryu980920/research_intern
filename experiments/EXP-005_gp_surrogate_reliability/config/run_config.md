@@ -1,6 +1,6 @@
 # EXP-005 — GP Surrogate Reliability: 실행 조건과 평가 설계
 
-**Status:** Running (Stage 2/2b WSL 완료, Stage 3A 코드 준비) · **New SPICE evaluations:** **0**
+**Status:** Running (Stage 1/2/2b/3A WSL 완료; Stage 3B planned) · **New SPICE evaluations:** **0**
 
 ## 1. Dataset & provenance
 
@@ -9,7 +9,7 @@
 - **별도 참고용 신규 관측:** EXP-004의 D060 / `raw/prediction_D060.json`. D060은 40/20 기본 평가에 넣지 않는다. EXP-004의 GP는 60개 전체로 학습했고, 그 D060은 해당 모델이 선택한 설계안이다.
 - **ATLAS baseline:** commit `dd23c5ba7beb598909be593e4a84c81dab92cc69`, `topbo.gp_model.GPSurrogate` / BoTorch `SingleTaskGP`, independent GP per spec, Matérn 5/2 ARD, input Normalize, outcome Standardize, float64.
 - **이 단계의 simulator:** 사용하지 않음 (SPICE 0회). 향후 원본 결과 의심 시 별도 진단 실험으로 관리.
-- **Baseline reproducibility:** conda `atlas`, repo `~/atlas`, research repo `~/research_intern`. GP 평가 코드에서 seed=42로 고정 예정.
+- **Baseline reproducibility:** conda `atlas`, repo `~/atlas`, research repo `~/research_intern`. GP 평가 코드에서 seed=42 사용.
 
 ## 2. Data audit — Stage 1 (구현됨)
 
@@ -50,7 +50,7 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/audit_tt_dataset.py
 - D040~D059는 ATLAS가 앞선 결과를 보며 *adaptive selection*한 표본이다. 따라서 이 holdout 결과는 **탐색 궤적에 대한 시간순 진단**이지 iid 무작위 일반화 정확도는 아니다.
 - 검증 세트로 모델 설정을 고르면 최종 성능을 같은 세트에서 편향 없이 평가했다고 주장할 수 없다. 가능하면 rolling-origin/후속 관측에서 확인한다.
 
-## 3b. Extractor semantics — Stage 2b (코드 확인 완료, WSL 기록 대기)
+## 3b. Extractor semantics — Stage 2b (WSL 진단 실행 완료)
 
 고정된 ATLAS 커밋의 `eval_engines/ngspice/CircuitClass.py`:
 - `find_ugbw`: unity-gain crossing 실패 시 `freq[0]` (GF180 TT testbench 시작 1 Hz)
@@ -65,7 +65,7 @@ paired AC sentinels: D014, D047 (train 1, holdout 1).
 독립 확인/기록: `python experiments/EXP-005_gp_surrogate_reliability/scripts/diagnose_metric_semantics.py`.
 결과 `data/analysis/metric_semantics_audit.json` / `metric_semantics_flags.csv`. 신규 SPICE/GP 0회.
 
-## 4a. Matched A/B evaluation — Stage 3A (WSL 실행 대기)
+## 4a. Matched A/B evaluation — Stage 3A (WSL 완료)
 
 - Script: `scripts/compare_validity_aware_gp.py`
 - GP A: `data/analysis/gp_baseline_holdout_predictions.csv`에서 기존 실제 ATLAS GP 예측값 읽기. Stage-2 JSON 및 원본 SHA 검증.
@@ -81,7 +81,30 @@ git pull --ff-only
 python experiments/EXP-005_gp_surrogate_reliability/scripts/compare_validity_aware_gp.py
 ```
 
-## 4. Candidate improvements — Stage 3 (추출 의미를 명시한 뒤 진행)
+### Stage 3A 실험 결과 (D047 제외 후 19개 공통 검증)
+
+| 지표 | MAE A | MAE B | RMSE A | RMSE B | 해석 |
+| --- | ---: | ---: | ---: | ---: | --- |
+| PM (°) | 16.8995 | **14.9638** | 21.8781 | 19.0677 | B 개선 |
+| UGBW (MHz) | **7.1082** | 9.8395 | 10.5405 | 15.3291 | B 악화 |
+| Settling (µs 상당) | 8005.33 | **7.93263** | 19293.75 | 22.6951 | 수학적 오차 감소, 검증 label 유효성 미완료 |
+
+- Stage 3A GP(B) fitting 3회(5.62 s), 명시적 MLL fallback 메시지 없음.
+- B Settling GP에서 GPyTorch `NumericalWarning: Negative variance values detected` 발생. posterior std가 **18/19에서 정확히 1e-5 s (10 µs)**. 라이브러리 분산 하한 보정과 일치하는 수치지만 원인은 미확인.
+- B settling 평균 음수 예측 0/19 (A는 8/19). Coverage B 94.7%는 분산 경고가 있어 검증된 uncertainty calibration으로 보지 않음.
+- Stage 2 및 Stage 3A 사용자 업로드 결과를 **`data/analysis/archive/`**에 보존(원본 WSL 분석 경로와 `git pull` 충돌 방지), 원본 raw 데이터는 EXP-003에 유지. Provenance: [archive README](../data/analysis/archive/README.md).
+- 시간순 연구 기록: [2026-10-10 log](../../../logs/2026-10/2026-10-10.md).
+
+## 4b. Numerical stability — Stage 3B (계획, 미실행)
+
+**RQ:** B에서 음수 분산 경고/10 µs std 반복이 초(s) 단위의 작은 타깃 수치 또는 분산 하한 처리에 영향을 받은 것인가?
+
+- GP B vs 동일 34 train/19 holdout의 GP C: 출력 타깃을 **s → µs**로 표현. 같은 커널/seed/유효성 제외 마스크 사용.
+- 공통 초(s)로 역변환 후 예측 평균, MAE/RMSE, posterior std, 경고 개수 비교.
+- `Standardize`는 이상적 조건에서 선형 단위 변화에 불변이어야 하므로 실제 차이가 있다면 numerical implementation/hard floor 영향 가설을 검증.
+- **아직 코드 실행하지 않았고, 결과도 없다.**
+
+## 4. Candidate improvements — Stage 3C 이후 (미실행)
 
 A. **Baseline:** 현재 GP 그대로.
 
