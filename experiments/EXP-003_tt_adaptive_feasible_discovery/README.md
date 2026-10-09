@@ -292,7 +292,21 @@ gain_min, ibias_max, phm_min, t_settle_max, ugbw_min, vswing_min,
 feasible, n_specs_passed, worst_margin, total_violation
 ```
 
-원본 ATLAS `iterations.jsonl`만으로는 7개 설계 파라미터 전체를 복원할 수 없기 때문에, 연구 script가 `ExperimentLogger.history_X`를 사용해 trajectory를 따로 저장한다.
+원본 ATLAS `iterations.jsonl`만으로는 7개 설계 파라미터 전체를 복원할 수 없기 때문에, 연구 script는 **TT 평가 1회가 완료될 때마다** `CircuitEvaluator.evaluate()`의 실제 결과와 그때 사용된 7개 유효 파라미터(clip/round 적용)를 `trajectory.csv` 한 행으로 기록한다.
+
+### Incremental CSV preservation (2026-10-09 변경)
+
+- Python 실행 시 `data/trajectory.csv`를 새로 생성하고 header를 먼저 기록한다.
+- D000 평가 완료 → `D000` 행 추가 → `flush + fsync`로 디스크 기록
+- D001 평가 완료 → `D001` 행 추가 → 디스크 기록
+- 이후 D020+도 동일하게 한 행씩 기록한다.
+- 따라서 최적화 중 프로그램이 오류로 중단돼도 **이미 끝난 평가 행은 파일에 보존**된다. 단, 실행 중이던 미완료 평가 결과는 기록되지 않는다.
+- 같은 경로에 기존 CSV가 있으면 **덮어쓰지 않고 실행을 중단**한다. 새 실행 전에는 이전 파일을 보존·이름 변경하거나 run directory를 따로 계획한다.
+- 원래 GP optimizer 자체의 학습·후보 선택 동작은 변경하지 않는다.
+- 성공적으로 종료하면 별도로 `data/run_summary.json`이 생성된다. 실패로 중단한 경우 summary는 만들어지지 않을 수 있다.
+- **주의:** 중단된 run의 CSV를 보존할 수 있지만, 이것이 곧 **ATLAS optimizer state의 자동 재시작(resume)** 기능을 제공하는 것은 아니다.
+
+`trajectory.csv`는 향후 비교·분석용 핵심 dataset이며, completion 후 `ExperimentLogger.history_X`만으로 새로 생성하는 방식은 사용하지 않는다.
 
 실행 완료 후 다음 **그림을 분석 코드와 원본 CSV를 연결해 생성**한다. 현재 그림 파일이 생성됐다는 뜻은 아니다.
 
