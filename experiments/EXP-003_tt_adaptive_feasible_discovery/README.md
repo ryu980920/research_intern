@@ -65,7 +65,7 @@ D020 이후 gain, UGBW, PM, swing 등을 **같은 design에서 동시에** 개�
 
 모델이 예측한 near-feasible set과 Mapper topology 관련 지표가 변화할 때, 실제 SPICE 기반 constraint margin도 개선되는가?
 
-주의: \`F_hat\`과 \`beta0\`는 모델이 예측한 후보 구조를 나타내는 값이며, **실제로 측정한 feasible island의 개수는 아니다.**
+주의: `F_hat`과 `beta0`는 모델이 예측한 후보 구조를 나타내는 값이며, **실제로 측정한 feasible island의 개수는 아니다.**
 
 ## 4. 개념 정의 (용어 혼동 방지)
 
@@ -73,15 +73,15 @@ D020 이후 gain, UGBW, PM, swing 등을 **같은 design에서 동시에** 개�
 | --- | --- |
 | Design point \(x\) | 7개 설계 파라미터를 한 번에 지정한 조합 |
 | TT evaluation 1회 | 한 design point를 TT 3.3 V, 27 °C에서 SPICE로 평가해 6개 metric 확보 |
-| \`budget\` | 실제 design 평가 횟수의 상한. **돈이나 GP 예측 후보 수가 아님** |
-| \`n_init\` | GP 학습을 위한 최초 실제 평가 점 개수 |
+| `budget` | 실제 design 평가 횟수의 상한. **돈이나 GP 예측 후보 수가 아님** |
+| `n_init` | GP 학습을 위한 최초 실제 평가 점 개수 |
 | Adaptive evaluation | 이전 실제 평가값을 학습해 ATLAS가 선택한 새로운 점을 SPICE로 평가 |
 | Feasible | **하나의 design이 6개 조건을 동시에** 통과 |
 | Near-feasible (분석용) | 정규화된 constraint margin 등을 이용해 target에 얼마나 가까운지 보는 정도. 아직 threshold로 이산 분류하지 않음 |
 | Feasible Island | 설계공간에서 서로 연결된 feasible 점들의 **영역**. 한 feasible 점과 다름 |
 | Robust feasible | **동일한 design point**가 TT를 포함한 17 PVT corners에서 모두 feasible |
 
-하나의 TT evaluation에서 ngspice는 AC/DC/DC-sweep/transient 등의 여러 분석을 수행할 수 있다. 따라서 \`budget=60\`은 ngspice의 내부 분석 명령이나 SPICE subprocess 총합을 뜻하지 않고, **최대 60개 design point의 TT 성능 평가**를 뜻한다.
+하나의 TT evaluation에서 ngspice는 AC/DC/DC-sweep/transient 등의 여러 분석을 수행할 수 있다. 따라서 `budget=60`은 ngspice의 내부 분석 명령이나 SPICE subprocess 총합을 뜻하지 않고, **최대 60개 design point의 TT 성능 평가**를 뜻한다.
 
 ## 5. 회로와 실험 조건
 
@@ -89,10 +89,10 @@ D020 이후 gain, UGBW, PM, swing 등을 **같은 design에서 동시에** 개�
 
 - Circuit: GF180 two-stage op-amp
 - 평가 corner: **TT / 3.3 V / 27 °C**
-- 평가 형태: TT-only, \`CircuitEvaluator(..., pvt=False)\`
-- 설계 변수 7개: \`wp1, wn1, wp3, wn3, wn4, wn5, cc\`
-- \`wp*\`, \`wn*\`: transistor width; \`cc\`: compensation capacitor
-- Bounds: width 0.5–100 µm, \`cc\` 0.1–10 pF (정확한 config는 \`config/run_config.md\` 참조)
+- 평가 형태: TT-only, `CircuitEvaluator(..., pvt=False)`
+- 설계 변수 7개: `wp1, wn1, wp3, wn3, wn4, wn5, cc`
+- `wp*`, `wn*`: transistor width; `cc`: compensation capacitor
+- Bounds: width 0.5–100 µm, `cc` 0.1–10 pF (정확한 config는 `config/run_config.md` 참조)
 - 다른 netlist/PDK 및 bias 조건은 기존 YAML과 netlist에 고정
 
 ### Specifications — 6개를 모두 만족해야 feasible
@@ -110,61 +110,61 @@ D020 이후 gain, UGBW, PM, swing 등을 **같은 design에서 동시에** 개�
 
 ### Reproducibility
 
-- ATLAS commit: \`dd23c5ba7beb598909be593e4a84c81dab92cc69\`
-- GF180 PDK commit: \`9f992d5a9186d1f7820c58f039c484ad35b2edea\`
+- ATLAS commit: `dd23c5ba7beb598909be593e4a84c81dab92cc69`
+- GF180 PDK commit: `9f992d5a9186d1f7820c58f039c484ad35b2edea`
 - 기존 baseline simulator: ngspice 44.2
-- Python: 3.10.22 / conda env \`atlas\`
+- Python: 3.10.22 / conda env `atlas`
 - GF180 global statistical variation = OFF
 - GF180 mismatch statistical variation = OFF
 
-\`\`\`spice
+```spice
 sw_stat_global = 0
 sw_stat_mismatch = 0
-\`\`\`
+```
 
 같은 design x + 같은 TT corner에서 **MC 랜덤 샘플이 달라져 metric이 바뀌는 문제**를 피하려는 설정이다. EXP-003에서 Monte Carlo를 수행하는 것은 아니다.
 
 ## 6. 왜 budget=60, n_init=20인가?
 
-실제 \`run_experiment.py\`는 initial sample 수를 다음과 같이 계산한다.
+실제 `run_experiment.py`는 initial sample 수를 다음과 같이 계산한다.
 
-\`\`\`python
+```python
 n_init = max(min(3 * n_params, budget // 3, 50), 10)
-\`\`\`
+```
 
 이 식은 초기 표본 수를 parameter 수와 전체 평가 예산에 맞추는 **알고리즘의 휴리스틱 설정**이지, 회로의 물리 법칙이 아니다.
 
 현재:
 
-\`\`\`text
+```text
 n_params = 7
 budget = 60
 
 3 × 7 = 21
 60 // 3 = 20
 n_init = max(min(21, 20, 50), 10) = 20
-\`\`\`
+```
 
 따라서:
 
-\`\`\`text
+```text
 D000–D019 : 20 initial design evaluations
 D020–D059 : 최대 40 adaptive design evaluations
 전체 상한 : 60 TT evaluations
-\`\`\`
+```
 
-- **20개:** EXP-002의 \`TopoBO.optimize(n_init=20, seed=42)\` initial-set 정의와 맞추기 위해
+- **20개:** EXP-002의 `TopoBO.optimize(n_init=20, seed=42)` initial-set 정의와 맞추기 위해
 - **40개:** 일단 어디까지 adaptive 탐색이 가는지 관찰하기 위한 제한된 추가 평가 횟수
 - **60회:** 20개 initial + 최대 40개 adaptive가 되도록 정한 pilot budget이지 최적값으로 증명된 숫자가 아님
 - **Early stop:** 첫 feasible 점 발견 시 더 이상 평가하지 않음. feasible이 없으면 예산 소진 시 종료
 
-참고: 큰 budget에서는 standard runner가 \`n_init=21\`을 사용할 수 있다. EXP-002는 **optimizer-default 20-point pilot**이며 모든 ATLAS run의 초기값이 20으로 고정된 것은 아니다.
+참고: 큰 budget에서는 standard runner가 `n_init=21`을 사용할 수 있다. EXP-002는 **optimizer-default 20-point pilot**이며 모든 ATLAS run의 초기값이 20으로 고정된 것은 아니다.
 
 **중요한 실행 특성:** 현재 script는 EXP-002 CSV를 그대로 surrogate에 넣는 warm start가 아니다. D000–D019를 **TT에서 다시 실제 평가**한 뒤 D020부터 적응형 탐색한다. 같은 설정인지 확인하기 위해 초기 TT 결과를 EXP-002와 비교해야 하며, 계산비용 측면에서도 이 재평가 20회가 budget에 포함된다.
 
 ## 7. ATLAS가 D020을 고르는 과정
 
-\`\`\`text
+```text
 D000–D019 parameter + 실제 TT metric
                  ↓
 GP surrogate 학습 (설계 변수 → 각 성능의 예측)
@@ -186,19 +186,19 @@ wEI와 topology 항을 결합한 acquisition score
 D020만 실제 TT SPICE 평가 → 결과 추가
                  ↓
 GP 재학습 → D021 선택 → 반복
-\`\`\`
+```
 
 - **GP surrogate:** 모든 후보를 SPICE로 돌리지 않고 성능을 예측하는 대리 모델
 - **Acquisition:** 다음 SPICE 평가에 어떤 후보를 쓸지 순위를 매기는 규칙
 - **Global LHS:** 넓은 설계공간을 살피는 후보
 - **Local sampling:** 현재까지 가능성이 높았던 점 주변 후보
 - **Mapper:** 모델의 예측 가능 영역이 하나인지 여러 영역인지 등의 형태를 근사하는 도구
-- **\`F_hat\`:** 실제 측정된 island가 아니라, 모델이 예측한 near-feasible 후보 집합
+- **`F_hat`:** 실제 측정된 island가 아니라, 모델이 예측한 near-feasible 후보 집합
 - **50,000 candidates:** 예측용 후보 수. **50,000회 SPICE simulation이 아니다.**
 
 현재 ATLAS에는 feasible 점이 없는 동안 surrogate의 **작업용 constraint를 일시적으로 완화**하는 로직도 있다. 하지만 실제 feasible 판정은 언제나 원래 target spec으로 한다. 완화된 목표를 통과했다고 실제 feasible로 기록하면 안 된다.
 
-본 실험은 \`surrogate='gp'\`를 고정한다. 표준 runner의 \`auto\`는 학습 시간이 길어지면 NN으로 전환할 수 있으므로, machine speed에 따른 전환을 피하고 동일 모델 기반 trajectory를 기록하려는 선택이다.
+본 실험은 `surrogate='gp'`를 고정한다. 표준 runner의 `auto`는 학습 시간이 길어지면 NN으로 전환할 수 있으므로, machine speed에 따른 전환을 피하고 동일 모델 기반 trajectory를 기록하려는 선택이다.
 
 ## 8. Procedure — 무엇을, 왜 확인하는가?
 
@@ -211,7 +211,7 @@ GP 재학습 → D021 선택 → 반복
 | Save | trajectory와 run logs 저장 | 코드를 재실행하지 않고 연구 결과 추적 | 데이터 무결성 점검 |
 | Analyze | margin/metric/parameter trajectory 비교 | 어떤 spec을 개선하며 움직였는지 이해 | 후보 선정 및 다음 가설 |
 
-실제 실행 script: \`scripts/run_adaptive_tt_search.py\`
+실제 실행 script: `scripts/run_adaptive_tt_search.py`
 
 **실행 전에 확인할 것:** script가 참조하는 로컬 GF180 모델 경로, active statistical switches, ngspice executable과 기존 EXP-002의 설정이 실제 PC와 맞는지. 버전·경로·MC 설정이 다르면 결과 비교를 중단하고 먼저 원인을 해결한다.
 
@@ -221,45 +221,45 @@ GP 재학습 → D021 선택 → 반복
 
 ### Feasibility
 
-\`\`\`text
+```text
 feasible = 모든 6개 original target specs를 동시에 만족
 n_specs_passed = 6개 중 통과한 spec 개수
-\`\`\`
+```
 
-\`5/6\`을 만족해도 마지막 하나가 target에서 아주 멀 수 있으므로, \`n_specs_passed\`만으로 “거의 feasible”이라고 결론 내리지 않는다.
+`5/6`을 만족해도 마지막 하나가 target에서 아주 멀 수 있으므로, `n_specs_passed`만으로 “거의 feasible”이라고 결론 내리지 않는다.
 
 ### Normalized constraint margin
 
 각 spec의 방향에 따라:
 
-\`\`\`text
+```text
 minimum constraint (gain, UGBW, PM, swing):
     margin = (measured - target) / target
 
 maximum constraint (ibias, settling):
     margin = (target - measured) / target
-\`\`\`
+```
 
-예: PM=45°이고 target=60°이면 \`(45-60)/60 = -0.25\`로, 25% 부족하다.
+예: PM=45°이고 target=60°이면 `(45-60)/60 = -0.25`로, 25% 부족하다.
 
 - margin > 0: 해당 spec 통과 여유
 - margin = 0: 경계
 - margin < 0: 해당 spec 위반
 
-\`\`\`text
+```text
 worst_margin     = min(6개 spec margins)
 total_violation  = sum(max(0, -margin) for each spec)
-\`\`\`
+```
 
-- \`worst_margin >= 0\`이면 수학적으로 모든 spec을 통과
-- \`worst_margin\` 상승: 가장 불리한 spec의 상대 여유 개선 가능성
-- \`total_violation\` 감소: 모든 실패 항목을 합친 위반량 감소
+- `worst_margin >= 0`이면 수학적으로 모든 spec을 통과
+- `worst_margin` 상승: 가장 불리한 spec의 상대 여유 개선 가능성
+- `total_violation` 감소: 모든 실패 항목을 합친 위반량 감소
 
 두 지표를 함께 보면 한 성능만 크게 향상되는 현상을 구분할 수 있다. 계산 불능/penalty/sentinel metric은 물리적 측정값으로 단정하지 않고 별도 진단해야 한다.
 
 ### ATLAS 내부 진단값
 
-\`iterations.jsonl\` 등에서 얻을 수 있는 \`beta0\`, \`n_F_hat\`, \`lambda_t\`, fit/simulation time도 참고한다.
+`iterations.jsonl` 등에서 얻을 수 있는 `beta0`, `n_F_hat`, `lambda_t`, fit/simulation time도 참고한다.
 
 이는 탐색 내부 상태를 보여줄 뿐 **실제 feasible component 개수를 입증하지 않는다.**
 
@@ -269,7 +269,7 @@ total_violation  = sum(max(0, -margin) for each spec)
 
 실행 **후** 생성될 파일(현재 결과 없음):
 
-\`\`\`text
+```text
 data/
 ├── trajectory.csv
 └── run_summary.json
@@ -281,18 +281,18 @@ raw/
         ├── iterations.jsonl
         ├── progress.log
         └── results.json
-\`\`\`
+```
 
-\`trajectory.csv\` columns:
+`trajectory.csv` columns:
 
-\`\`\`text
+```text
 iteration, design_id, phase,
 wp1, wn1, wp3, wn3, wn4, wn5, cc,
 gain_min, ibias_max, phm_min, t_settle_max, ugbw_min, vswing_min,
 feasible, n_specs_passed, worst_margin, total_violation
-\`\`\`
+```
 
-원본 ATLAS \`iterations.jsonl\`만으로는 7개 설계 파라미터 전체를 복원할 수 없기 때문에, 연구 script가 \`ExperimentLogger.history_X\`를 사용해 trajectory를 따로 저장한다.
+원본 ATLAS `iterations.jsonl`만으로는 7개 설계 파라미터 전체를 복원할 수 없기 때문에, 연구 script가 `ExperimentLogger.history_X`를 사용해 trajectory를 따로 저장한다.
 
 실행 완료 후 다음 **그림을 분석 코드와 원본 CSV를 연결해 생성**한다. 현재 그림 파일이 생성됐다는 뜻은 아니다.
 
@@ -336,7 +336,7 @@ TT의 여러 feasible component를 시각화하는 2D 투영 그래프는 후속
 1. 최초 feasible 발견 시 종료하므로 **다중 Island 탐색을 수행하지 않음**.
 2. 20 initial points를 기존 CSV에서 warm-start하지 않고 TT로 다시 시뮬레이션함.
 3. 전체 budget 60은 논문용 수렴성 검증이 아닌 pilot.
-4. \`F_hat\` / Mapper \`beta0\`는 **surrogate-predicted structure**; 측정 기반 ground-truth component 아님.
+4. `F_hat` / Mapper `beta0`는 **surrogate-predicted structure**; 측정 기반 ground-truth component 아님.
 5. 회로는 7차원이다. 2개 변수를 축으로 표시한 그림만으로 연결성 판단 불가.
 6. Corner-wise persistence를 평가하려면 같은 parameter point 집합을 여러 corner에 적용해야 함.
 7. TT feasible은 17-corner robust feasible의 **필요조건이지 충분조건이 아님**.
@@ -370,13 +370,13 @@ Corner마다 parameter를 다시 최적화하면 같은 위치에서 feasible이
 
 검증 항목:
 
-- 각 \`design_id × corner\`에 대한 6개 metric과 feasible
+- 각 `design_id × corner`에 대한 6개 metric과 feasible
 - corner에 따른 region의 이동·축소·분리·사라짐에 대한 **측정 기반 근거**
 - 각 corner의 feasible set 및 17-corner 교집합
 - Island A/B 중 어느 곳에서 robust-feasible point가 더 많이 나타나는가
 - boundary 근처가 corner에 따라 어떻게 바뀌는가
 
-**산출물 후보:** \`design_points.csv\`, \`corner_metrics.csv\`, corner별 feasibility/normalized margin plot, 동일 위치의 corner 비교.
+**산출물 후보:** `design_points.csv`, `corner_metrics.csv`, corner별 feasibility/normalized margin plot, 동일 위치의 corner 비교.
 
 ### Follow-up C — Persistence Modeling and Baseline Comparison
 
