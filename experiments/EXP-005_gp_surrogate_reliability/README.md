@@ -1,6 +1,6 @@
 # EXP-005 — GP Surrogate Reliability & Improvement
 
-**Status:** Running (Stage 1/2 completed; extractor semantics verified; classification script pending WSL run) · **Date:** 2026-10-10 · **Circuit:** GF180 two-stage op-amp · **PVT:** TT 3.3 V / 27 °C · **New SPICE budget:** **0**
+**Status:** Running (Stage 1/2/2b completed; Stage 3A A/B code prepared, WSL execution pending) · **Date:** 2026-10-10 · **Circuit:** GF180 two-stage op-amp · **PVT:** TT 3.3 V / 27 °C · **New SPICE budget:** **0**
 
 ## Experiment at a Glance
 
@@ -98,7 +98,22 @@ cd ~/research_intern
 python experiments/EXP-005_gp_surrogate_reliability/scripts/diagnose_metric_semantics.py
 ```
 
-**Stage 3 — 개선 가설 비교 (추출 의미 정의 후 수행)**
+**Stage 3A — 대체값 학습 제외 GP 비교 (실행 코드 준비 완료, WSL 실행 대기)**
+
+- [scripts/compare_validity_aware_gp.py](scripts/compare_validity_aware_gp.py)는 Stage 2에서 저장한 **원본 GP(A) 예측 120개**와 동일한 고정 코드의 **대체값 제외 GP(B)** 예측을 비교한다.
+- B는 **metric별 독립 GP**를 원래 ATLAS `GPSurrogate`로 다시 학습한다. PM/UGBW는 학습 D014를 제외해 **39개**, Settling은 D013/014/015/016/017/023을 제외해 **34개**로 학습한다. Gain, Ibias, Swing은 영향을 받지 않으므로 재학습하지 않는다.
+- 공정한 오차 비교를 위해 PM/UGBW/Settling 모두 **D047(확정 대체값)을 제외한 공통 검증 19개**에서 A와 B의 MAE/RMSE/근사 95% 구간 포함률/음수 예측 수를 비교한다.
+- 원본 60개 관측/실패 설계안 정보는 **삭제·수정하지 않는다**. 확정된 대체값을 regression 학습에만 사용하지 않는다. 작은 Settling 값을 모두 유효하다고 보증하지 않으며, 검증도 잠정적이다.
+- 의존 파일: Stage 2 `gp_baseline_holdout_predictions.csv`, `gp_baseline_holdout_summary.json`; Stage 2b `metric_semantics_audit.json`, `metric_semantics_flags.csv`. 모든 입력 SHA와 ATLAS 고정 커밋을 검증한다.
+- 결과: `data/analysis/validity_aware_gp_comparison.csv`, `data/analysis/validity_aware_gp_summary.json`. 신규 SPICE 0회, B GP fit 3회.
+
+```bash
+cd ~/research_intern
+git pull --ff-only
+python experiments/EXP-005_gp_surrogate_reliability/scripts/compare_validity_aware_gp.py
+```
+
+**Stage 3 — 이후 개선 가설 비교 (Stage 3A 결과 검토 후)**
 
 - 기존 Baseline은 원본 그대로 보존하고, 별도로 **확정적인 무차원 fallback을 학습에서 제외한 raw-target GP와 동일 학습셋의 log-target GP**를 비교한다. 검증도 동일한 후보 집합(확실한 무효 label 제외)에서 한다. 단, 제외되지 않은 샘플의 Settling 유효성은 파형 없이 보장할 수 없다는 한계를 명시한다.
 - 필요하다면 지역별 학습 모델을 검토하되, D050 주변에 데이터가 충분하지 않으면 무리하게 국소 GP가 더 좋다고 주장하지 않는다.
@@ -139,14 +154,17 @@ MAE/RMSE는 성능별 단위가 다르므로 metric 간 원시 오차값을 직�
 scripts/
   audit_tt_dataset.py         # Stage 1, 구현/실행 확인
   evaluate_gp_baseline.py     # Stage 2, GP 학습/검증 WSL 실행 완료
-  diagnose_metric_semantics.py # Stage 2b, extractor 소스 판정 확인/WLS 실행 대기
+  diagnose_metric_semantics.py # Stage 2b, extractor 소스 판정 확인/WSL 실행 완료
+  compare_validity_aware_gp.py # Stage 3A, GP(A) vs 대체값 제외 GP(B) 코드 준비
 data/analysis/
   dataset_audit.json          # Stage 1 실행 후 생성
   anomaly_flags.csv           # Stage 1 --save 실행 후 생성
   gp_baseline_holdout_predictions.csv   # Stage 2 실행 후 120행
   gp_baseline_holdout_summary.json       # Stage 2 실행 후 MAE/RMSE/coverage/fallback
   metric_semantics_audit.json            # Stage 2b 실행 후 근거와 split별 개수
-  metric_semantics_flags.csv             # Stage 2b 실행 후 설계점별 유효성 판정
+  metric_semantics_flags.csv             # Stage 2b 실행 완료, 설계점별 유효성 판정
+  validity_aware_gp_comparison.csv       # Stage 3A 실행 후, 동일 검증점별 A/B 오차
+  validity_aware_gp_summary.json         # Stage 3A 실행 후 지표별 MAE/RMSE/coverage
   ...                         # Stage 2/3 metric-wise prediction/error (추후 정의)
 figures/
   ...                         # Stage 2/3 예측 vs 실측 및 오차 시각화
