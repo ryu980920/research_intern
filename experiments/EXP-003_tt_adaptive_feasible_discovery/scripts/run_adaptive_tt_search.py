@@ -170,6 +170,15 @@ def enable_incremental_trajectory(evaluator, n_init: int):
         csv_file.flush()
         os.fsync(csv_file.fileno())
 
+        # Every evaluated design gets a readable TT feasibility summary.
+        # Print only after the CSV row was durably saved.
+        print(
+            f"[TT RESULT] D{iteration:03d} | "
+            f"TT_FEASIBLE={feasible} | "
+            f"PASS={row['n_specs_passed']}/{len(evaluator.spec_names)} | "
+            f"WORST_MARGIN={row['worst_margin']:+.3f}",
+            flush=True,
+        )
         print(f"[CSV] Saved D{iteration:03d} -> {out}", flush=True)
         iteration += 1
         return specs
