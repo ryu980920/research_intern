@@ -203,15 +203,15 @@ Research Question:
 - parameter dimension: 7
 - budget 60 / n_init 20 / 최대 40 adaptive
 - seed 42 / GP surrogate / first feasible early stop
-- \`sw_stat_global = 0\`, \`sw_stat_mismatch = 0\`
+- `sw_stat_global = 0`, `sw_stat_mismatch = 0`
 - D000–D019 **TT 재실행** 후 D020부터 adaptive (EXP-002 data warm-start가 아님)
-- output: \`trajectory.csv\`, \`run_summary.json\`, ATLAS native logs
+- output: `trajectory.csv`, `run_summary.json`, ATLAS native logs
 
 관찰할 값: feasible 여부만이 아니라 iteration별 per-spec margin, worst_margin, total_violation, 7개 parameter trajectory와 ATLAS 내부 진단값.
 
 **Why:** feasibility 여부만 보면 왜 성공 또는 실패했는지 알 수 없다. 예컨대 PM은 개선되는데 UGBW가 떨어지는 trade-off를 확인해야 다음 탐색 전략을 정할 수 있다.
 
-상세 목적/가설/결과 해석/후속 방향은 \`experiments/EXP-003_tt_adaptive_feasible_discovery/README.md\`를 따른다.
+상세 목적/가설/결과 해석/후속 방향은 `experiments/EXP-003_tt_adaptive_feasible_discovery/README.md`를 따른다.
 
 ### Step 2 — TT Multi-Island Discovery (후속, 미실행)
 
@@ -232,7 +232,7 @@ EXP-003에서 **first feasible point를 찾더라도 그 점 하나가 Feasible 
 
 TT에서 발견한 **복수 region 후보 A/B/...**와 boundary에서 여러 대표 design points를 선택한다.
 
-이 **동일한 7개 파라미터 조합**을 TT 포함 17 PVT corners에서 시뮬레이션하고 \`design_points.csv\` + \`corner_metrics.csv\`로 기록한다.
+이 **동일한 7개 파라미터 조합**을 TT 포함 17 PVT corners에서 시뮬레이션하고 `design_points.csv` + `corner_metrics.csv`로 기록한다.
 
 Corner마다 parameter를 달리 최적화하는 것이 아니라 동일 좌표의 feasibility 변화를 비교해야 island의 이동·축소·소멸을 논할 수 있다.
 
