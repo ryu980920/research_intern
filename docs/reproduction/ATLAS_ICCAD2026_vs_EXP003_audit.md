@@ -91,6 +91,15 @@
 - 논문 당시 사용된 **spec target per run**, 당시 코드 SHA/변경 내역, 구체적인 PDK/model hash 및 MC 조건을 증거로 확인해야 한다.
 - 논문 당시 설정이 현재 공개 코드와 다르면 수정 내용을 명시적으로 분리한 재현 실험으로 수행한다. 증거 없는 버전/target 범위를 임의로 만들지 않는다.
 
+**환경 확인 스크립트:** [inspect_atlas_environment.py](inspect_atlas_environment.py). ATLAS/PDK 파일의 해시, 실행 가능한 `ngspice` 경로·버전, seed와 YAML 초기점 수·스펙 설정, PDK 스위치를 **읽기 전용**으로 검사한다. 실제 SPICE 평가나 코드 수정은 하지 않는다.
+
+```bash
+cd ~/research_intern
+git pull --ff-only
+conda activate atlas
+python docs/reproduction/inspect_atlas_environment.py
+```
+
 **새 SPICE 시뮬레이션에 앞서 수행할 정적/로컬 확인(다음 바로 할 일):**
 1. WSL의 ATLAS HEAD와 공개 고정 SHA 동일 확인; 로컬 변경 여부 `git status --short`.
 2. `ngspice` 실행 바이너리의 절대 경로, `ngspice -v` 버전 및 실제 ATLAS가 호출하는 경로 비교.
