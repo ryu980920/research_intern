@@ -25,7 +25,7 @@ prerequisite artifacts:
 
 **Those three prerequisite files were generated locally but were not provided
 for this GitHub archiving step.** Their source code, observed counts, and run
-commands are in [EXP-005 README](../../README.md) and
+commands are in [EXP-005 README](../../../README.md) and
 [2026-10-10 research log](../../../../../logs/2026-10/2026-10-10.md).
 Do not represent them as already archived.
 
