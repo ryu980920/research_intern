@@ -55,7 +55,7 @@ EXP-XXX_name/
 | [EXP-002](EXP-002_atlas_initial_design_pvt/README.md) | **Completed** | ATLAS initial 20점으로 corner-wise 결과 확장 | D001–D019의 323회 추가; EXP-001과 합쳐 0/340 feasible → TT 탐색 필요 |
 | [EXP-003](EXP-003_tt_adaptive_feasible_discovery/README.md) | **Completed** | GP 기반 Adaptive TT 설계로 first-feasible 탐색 | 0/60 feasible; D050 5/6 pass, worst margin -0.0973 → PM–UGBW bottleneck 및 탐색 확대 |
 | [EXP-004](EXP-004_warm_start_smoke_test/README.md) | **Completed** | EXP-003의 TT 60개 관측치로 GP Warm Start 기능 검증 | **60개 replay / 신규 D060 1개 평가** 성공; D060 5/6 pass(PM 38.11°), GP PM 예측 약 60° → EXP-005에서 예측 성능 검증 병행 |
-| [EXP-005](EXP-005_gp_surrogate_reliability/README.md) | **Prepared** | GP의 PM 예측 오차·음수 Settling 예측 원인을 데이터/전처리/모델 측면에서 분리 | 신규 SPICE **0회**; 기존 60개 이상값 점검 → 40/20 GP holdout → 모델 비교 후 EXP-006 결정 |
+| [EXP-005](EXP-005_gp_surrogate_reliability/README.md) | **Running (Stage 1/2/2b/3A 완료)** | GP 예측 오류를 원본 데이터·추출기 fallback·모델 불확실성으로 분해 | 신규 SPICE **0회**; 60개 데이터 audit → GP 40/20 baseline → 대체값 원인 확인 → 동일 19개에서 GP A/B 비교(PM·Settling 개선, UGBW 악화). **Stage 3B 수치 안정성 실험 계획, 미실행** |
 
 ### 현재 연구 흐름
 
@@ -70,7 +70,7 @@ EXP-003: TT initial20 + adaptive40 → feasible 0, best D050
    ↓
 EXP-004: 이전 실측 60개 Warm Start + 신규 D060 1회 (기능 성공, TT feasible 0)
    ↓
-EXP-005: 기존 60개 데이터로 GP 예측 성능 검증 / 개선 방법 비교 (신규 SPICE 0)
+EXP-005: 60개 audit → GP 40/20 → 대체값 의미 확인 → 유효성 필터 GP A/B 완료 → 수치 안정성 Stage 3B 예정 (신규 SPICE 0)
    ↓
 EXP-006 (조건부): 검증 후 데이터가 필요하면 Warm Start로 신규 TT 평가 확대
    ↓
