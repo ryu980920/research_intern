@@ -1,0 +1,2 @@
+design_id,corner,gain_min,ibias_max,phm_min,t_settle_max,ugbw_min,vswing_min,feasible
+D060,TT_3.3V_27C,439.5200000000254,0.00066808345,38.1071199534496,1.7633099999999843e-06,26312427.69532298,0.7744373000000002,False
