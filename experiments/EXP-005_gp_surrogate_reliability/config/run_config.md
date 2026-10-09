@@ -131,6 +131,27 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/test_settling_gp_uni
 - 한계: GP가 보고하는 latent posterior std로 계산한 구간은 독립적인 95% noisy prediction interval이 아니다. 검증 설계점은 adaptive sampling된 19개이고, 34개 학습값과 검증 19개의 정상 settling 측정 여부도 완전히 확인되지 않았다.
 - Next: extractor에서 정상적으로 settling index를 찾았는지 flag를 보존하는 방식 및 raw posterior variance·GPyTorch numerical clipping 처리 확인.
 
+
+## 4c. Posterior raw variance audit — Stage 3B-2 (스크립트 준비, WSL 미실행)
+
+**연구 방향 정정:** GP B는 분산 보정이 의심되는 대조군이며, GP C와 **두 정상 모델의 예측구간 성능 경쟁**으로 비교하지 않는다. B 18/19, C 13/19은 관측된 단순 구간 포함 횟수일 뿐, 두 모델의 calibrated predictive uncertainty 순위를 증명하지 않는다.
+
+**GPyTorch 소스 근거:** `MultivariateNormal.variance`에서 실제 covariance diagonal을 구한 뒤 dtype별 `settings.min_variance`(double 기본 `1e-10`)보다 작으면 `clamp_min`한다. **경고 문구는 'Negative variance'여도 작은 양수에 대해서도 동일한 경고가 발생할 수 있다.**
+
+- Script: `scripts/trace_settling_posterior_variance.py`; original ATLAS `GPSurrogate`, seed=42, 34 train/19 holdout, B(s)와 C(µs) 각각 fitting 한 번씩.
+- 각 점에서 `posterior.distribution.lazy_covariance_matrix.diagonal()`을 **보정 전 값**으로 추출하고 `posterior.variance` 및 실제 `gpytorch.settings.min_variance`와 비교한다.
+- 확인할 결과: raw variance가 **진짜 음수인지**, 양수지만 하한보다 작은지, 보정 후 값이 `max(raw, floor)`와 일치하는지, seconds↔µs 단위에서 실제 적용되는 하한이 어떻게 달라지는지.
+- 이전 Stage 3B B/C 평균·표준편차와 재현성 대조, `gpytorch`/PyTorch 버전과 likelihood noise, outcome standardization 규모 기록.
+- **추가 SPICE=0, GP fit=2, 아직 미실행.** 출력 `data/analysis/stage3b2_variance_trace.csv`, `stage3b2_variance_trace_summary.json`을 기존 파일 덮어쓰기 없이 생성.
+
+```bash
+cd ~/research_intern
+git pull --ff-only
+python experiments/EXP-005_gp_surrogate_reliability/scripts/trace_settling_posterior_variance.py
+```
+
+**결과 판단 전제:** GP B의 variance floor 여부가 확인돼도, 실제 수치 공분산이 작아지는 근본 원인과 관측 noise를 포함한 predictive distribution의 교정 여부는 별도의 다음 질문으로 남는다.
+
 ## 4. Candidate improvements — Stage 3C 이후 (미실행)
 
 A. **Baseline:** 현재 GP 그대로.
