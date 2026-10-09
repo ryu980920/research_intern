@@ -21,7 +21,8 @@ ATLAS_ROOT = Path(os.environ.get("ATLAS_ROOT", "~/atlas")).expanduser().resolve(
 RESEARCH_ROOT = Path("~/research_intern").expanduser().resolve()
 EXP_DIR = RESEARCH_ROOT / "experiments" / "EXP-003_tt_adaptive_feasible_discovery"
 DATA_DIR = EXP_DIR / "data"
-RAW_LOG_ROOT = EXP_DIR / "raw" / "atlas_logs"
+RAW_DIR = EXP_DIR / "raw"
+RAW_LOG_ROOT = RAW_DIR / "atlas_logs"
 
 EXPECTED_ATLAS_COMMIT = "dd23c5ba7beb598909be593e4a84c81dab92cc69"
 BUDGET = 60
@@ -100,8 +101,8 @@ def enable_incremental_trajectory(evaluator, n_init: int):
     """
     from topbo.utils import check_feasibility
 
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    out = DATA_DIR / "trajectory.csv"
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    out = RAW_DIR / "trajectory.csv"
 
     fieldnames = (
         ["iteration", "design_id", "phase"]
@@ -188,8 +189,8 @@ def enable_incremental_trajectory(evaluator, n_init: int):
 
 
 def write_summary(mem_logger, results, n_init: int, trajectory_path: Path) -> Path:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    out = DATA_DIR / "run_summary.json"
+    RAW_DIR.mkdir(parents=True, exist_ok=True)
+    out = RAW_DIR / "run_summary.json"
 
     first_feasible = mem_logger.first_feasible_iter()
     summary = {
@@ -228,6 +229,7 @@ def main() -> None:
     from run_experiment import n_init_for
     from topbo.circuit_eval import CircuitEvaluator
     from topbo.optimizers import TopoBO
+    from export_standard_data import export_tables
 
     evaluator = CircuitEvaluator(
         YAML_REL,
@@ -248,6 +250,20 @@ def main() -> None:
             f"Expected n_init=20 for EXP-003, got {n_init}. "
             "Do not continue because D000-D019 alignment would be lost."
         )
+
+    # A completed experiment must never silently overwrite its measurements.
+    # To rerun from scratch, first plan a distinct run/experiment directory.
+    protected_paths = [
+        RAW_DIR / "trajectory.csv",
+        DATA_DIR / "design_points.csv",
+        DATA_DIR / "corner_metrics.csv",
+    ]
+    for path in protected_paths:
+        if path.exists():
+            raise FileExistsError(
+                f"EXP-003 recorded output already exists: {path}. "
+                "Do not overwrite earlier experiment results."
+            )
 
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     RAW_LOG_ROOT.mkdir(parents=True, exist_ok=True)
@@ -274,6 +290,9 @@ def main() -> None:
         evaluator.evaluate = original_evaluate
         csv_file.close()
 
+    # Convert the lossless run-order source into the same parameter/metric
+    # tables used by EXP-001 and EXP-002, without running SPICE again.
+    export_tables(trajectory_path, DATA_DIR)
     summary_path = write_summary(mem_logger, results, n_init, trajectory_path)
 
     print("=" * 64)
@@ -282,7 +301,8 @@ def main() -> None:
     print(f"Evaluated designs : {len(mem_logger.history_X)}")
     print(f"Feasible designs  : {mem_logger.n_feasible()}")
     print(f"First feasible    : {mem_logger.first_feasible_iter()}")
-    print(f"Trajectory        : {trajectory_path}")
+    print(f"Raw trajectory    : {trajectory_path}")
+    print(f"Standard data     : {DATA_DIR}")
     print(f"Summary           : {summary_path}")
 
 
