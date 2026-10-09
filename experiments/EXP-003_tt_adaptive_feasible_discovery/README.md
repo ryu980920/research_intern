@@ -320,6 +320,24 @@ feasible, n_specs_passed, worst_margin, total_violation
 
 TT의 여러 feasible component를 시각화하는 2D 투영 그래프는 후속 연구에서 만들며, **2D상 분리돼 보인다고 7D에서도 분리됐다는 증거는 아니다.**
 
+### Terminal result visibility (2026-10-09 추가)
+
+향후 실행에서 **각 design의 TT 평가 결과가 끝날 때마다** 다음 내용을 출력한다.
+
+```text
+[TT RESULT] D020 | TT_FEASIBLE=False | PASS=5/6 | WORST_MARGIN=-0.370
+[CSV] Saved D020 -> .../data/trajectory.csv
+```
+
+- `TT_FEASIBLE`: 해당 설계점의 **실제 TT** 6개 spec 동시 충족 여부
+- `PASS`: 6개 성능 목표 중 충족한 개수
+- `WORST_MARGIN`: 가장 불리한 normalized margin. `0` 이상이어야 6개 모두 충족한다.
+- 이 메시지는 `trajectory.csv`에 평가 row가 성공적으로 기록된 이후 출력한다.
+- `[INIT] INFEAS` 및 `[ITER] INFEAS`는 ATLAS 원본 logger가 출력하는 메시지이고, `[TT RESULT]`는 EXP-003 연구 스크립트가 추가한 **명시적인 조건별 판정 출력**이다.
+- **이미 실행 중인 EXP-003 process에는 이번 수정이 실시간 반영되지 않는다.** 실험을 완료한 뒤 저장된 `trajectory.csv`에서 동일한 `feasible`, `n_specs_passed`, `worst_margin` 값을 확인할 수 있다.
+
+향후 모든 새로운 Experiment에 적용할 공통 원칙은 `experiments/README.md`의 `Experiment Terminal Output Convention`에 정의한다.
+
 ## 11. 결과에 따른 해석 / 다음 판단
 
 ### Case A — 최초 TT feasible 발견
