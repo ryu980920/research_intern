@@ -1,6 +1,6 @@
 # EXP-005 — GP Surrogate Reliability: 실행 조건과 평가 설계
 
-**Status:** Running (Stage 1/2/2b/3A/3B WSL 완료; Stage 3B 상세 검증 대기) · **New SPICE evaluations:** **0**
+**Status:** Running (Stage 1/2/2b/3A/3B WSL 완료; Stage 3B 결과 상세 검증 및 GitHub 보존 완료) · **New SPICE evaluations:** **0**
 
 ## 1. Dataset & provenance
 
@@ -119,6 +119,17 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/test_settling_gp_uni
 - 공통 초(s)로 역변환 후 예측 평균, MAE/RMSE, posterior std, 경고 개수 비교.
 - `Standardize`는 이상적 조건에서 선형 단위 변화에 불변이어야 하므로 실제 차이가 있다면 numerical implementation/hard floor 영향 가설을 검증.
 - **아직 코드 실행하지 않았고, 결과도 없다.**
+
+
+### Stage 3B 업로드 파일 기반 posterior-interval 진단
+
+- [19행 GP B/C comparison CSV](../data/analysis/archive/stage3b_settling_unit_comparison.csv) / [원본 summary JSON](../data/analysis/archive/stage3b_settling_unit_summary.json) GitHub에 보존. 원본 WSL 출력 경로와 충돌하지 않도록 archive 경로 사용. SHA256은 [archive README](../data/analysis/archive/README.md)에 기록.
+- **B(s)** MAE 7.93263 µs, RMSE 22.69509 µs, std median 10 µs, mean±1.96σ 관측 포함 **18/19**. B에서는 D056만 구간 밖.
+- **C(µs)** MAE 7.72849 µs, RMSE 22.16195 µs, std median 1.73396 µs, 동일 기준 관측 포함 **13/19**. 구간 밖 **D048, D052, D054, D056, D058, D059**.
+- C는 경고와 10µs std repetition이 사라졌지만, **구간 포함률은 94.7% → 68.4%로 악화**. 따라서 `GPU numerical warning=0`을 uncertainty calibration의 증거로 해석하지 않는다.
+- D056 관측값 **127.253 µs 상당**, C 예측 **31.817 µs**; 전체 C 절대오차 합계의 **~65%**를 차지한다. waveform 유효성 미확인.
+- 한계: GP가 보고하는 latent posterior std로 계산한 구간은 독립적인 95% noisy prediction interval이 아니다. 검증 설계점은 adaptive sampling된 19개이고, 34개 학습값과 검증 19개의 정상 settling 측정 여부도 완전히 확인되지 않았다.
+- Next: extractor에서 정상적으로 settling index를 찾았는지 flag를 보존하는 방식 및 raw posterior variance·GPyTorch numerical clipping 처리 확인.
 
 ## 4. Candidate improvements — Stage 3C 이후 (미실행)
 
