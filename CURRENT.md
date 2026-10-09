@@ -209,8 +209,9 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 ## EXP-005 GP Surrogate Reliability (Prepared, 2026-10-10)
 
 - **RQ:** 기존 GP 예측 오차가 data quality·극단값·모델링/fit 문제 중 어디와 연결되는가? 관측값 부족이 실제 병목인가?
-- **Stage 1 (구현됨, 실행 대기):** EXP-003 `raw/trajectory.csv` 60개 점검 스크립트 `scripts/audit_tt_dataset.py` (신규 SPICE 0회). PM=-180° 근처, UGBW 1 Hz 이하, Settling >600 µs는 **원인 확정이 아닌 점검 플래그**.
-- **Stage 2/3 (설계만 완료):** D000–D039 train 40 / D040–D059 holdout 20으로 baseline GP의 MAE/RMSE/구간 포함률·MLL fallback을 기록, 동일 분할에서 로그 타깃 개선과 필요시 국소 GP 비교.
+- **Stage 1 (WSL 실행 완료):** EXP-003 `raw/trajectory.csv` 60개 점검. **점검 대상 7개**, PM -180° 근처 2개, UGBW ≤1 Hz 2개, Settling >600 µs 7개(플래그 중복 가능); **중복 설계점 0개**. 이상값의 실제 원인은 **아직 미확인**. `--save` 기록은 별도 실행 전.
+- **Stage 2 (코드 구현, WSL 실행 대기):** [evaluate_gp_baseline.py](experiments/EXP-005_gp_surrogate_reliability/scripts/evaluate_gp_baseline.py)에서 **실제 ATLAS `GPSurrogate`**를 D000–D039 train 40으로 학습하고 D040–D059 holdout 20의 6개 metric(총 120예측)에 대한 MAE/RMSE/구간 포함률·MLL fallback을 보존. **신규 SPICE 0회**.
+- **Stage 3 (미구현):** Baseline 결과 검토 후 동일 분할에서 로그 타깃 개선과 필요시 국소 GP 비교.
 - **중요:** D040–D059는 adaptive 탐색으로 선택된 데이터이며 iid 일반화 성능을 보장하지 않는다. GP의 Settling 음수 예측은 관찰된 문제지만 그 원인은 미확인.
 - **Budget:** 현재 EXP-005에서 **추가 ngspice 설계 평가 0개**. 이후 필요성이 입증될 때 EXP-006에서 별도로 결정.
 - **문서:** [EXP-005 README](experiments/EXP-005_gp_surrogate_reliability/README.md), [실험 설정](experiments/EXP-005_gp_surrogate_reliability/config/run_config.md).
