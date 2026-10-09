@@ -213,6 +213,15 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 - **미해결:** 논문 'random spec targets' 문구와 현재 공개 YAML `low==high`의 차이, 논문 실험 이후 수정된 ATLAS 코드, GF180 PDK model hashes 및 통계 스위치 등 세부 환경.
 - **다음:** WSL에서 ATLAS SHA/작업트리, ngspice executable/version, PDK 모델 위치·해시·MC 스위치, YAML targets 확인 → 공개 코드 standard run을 별도 experiment로 할지 결정. **현재 신규 시뮬레이션 0회, 정식 논문 재현 실행 미실행.**
 
+### Environment preflight 실측 결과 (2026-10-10, 신규 SPICE 0회)
+
+- `inspect_atlas_environment.py` 사용자 WSL 실행 완료. **ATLAS HEAD=`dd23c5ba7beb598909be593e4a84c81dab92cc69`**, 현재 PATH `ngspice=/usr/local/bin/ngspice` **44.2**, PDK_ROOT `/home/ryu98/pdks`, GF180 global/mismatch MC 모두 **0**.
+- 7D TSA, 6 specs, YAML target ranges 모두 고정, 17 netlists, **n_init60=20/n_init500=21** 확인. ATLAS source tracked files modified 없음.
+- 유일한 `warnings=1`: untracked `netlist/.spiceinit` 및 `ac.csv`, `dc.csv`, `dc_sweep.csv`, `tran.csv` 5개 때문. 소스 코드 변경으로 혼동하지 않으며, `.spiceinit`을 **삭제하지 않고 내용 확인**할 것.
+- GF180 `design.ngspice`, `sm141064.ngspice`, `smbb000149.ngspice`의 로컬 SHA256 기록 완료. 동일한 로컬 모델 사본들의 해시 일치는 확인, **논문 당시 PDK 모델 해시와의 일치는 여전히 미검증**.
+- **다음 할 일:** `cd ~/atlas && git status --short && cat eval_engines/ngspice/ngspice_inputs/netlist/.spiceinit` (읽기만). 그다음 독립 500-eval run 출력/환경 provenance/예산 승인 여부 결정. 상세 수치와 source hashes: [재현성 감사 §7](docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md).
+- **주의:** ngspice 44.2가 **현재** 기본 PATH에서 확인된 것이며 EXP-003 실행 순간 같은 바이너리를 썼다는 확정 증거는 아직 없음. **실제 benchmark/논문 재현은 아직 실행하지 않았다.**
+
 ## EXP-005 GP Surrogate Reliability (Paused after Stage 3B-2, 2026-10-10)
 
 - **RQ:** 기존 GP 예측 오차가 data quality·극단값·모델링/fit 문제 중 어디와 연결되는가? 관측값 부족이 실제 병목인가?
