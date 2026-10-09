@@ -1,0 +1,90 @@
+{
+  "experiment": "EXP-005",
+  "stage": "3B target_unit_numerical_stability",
+  "status": "completed",
+  "atlas_sha": "dd23c5ba7beb598909be593e4a84c81dab92cc69",
+  "raw_trajectory_sha256": "46688d66b66d41e3f485cfeb1a6e152105dd60ae91e3d89a192a53ac648d5ba3",
+  "stage3a_csv_sha256": "d7e049c5aa689cf080c4ae988b99b2d567b202aca8a5629553050413e8f0a0c1",
+  "stage3a_summary_sha256": "602d4bf241f94d594a1c15374dbd9b2d6facad7275e49c152d9bc0257ca6ab6f",
+  "metric_semantics_audit_sha256": "9aab242abc1b9be8a1dc30b0252a20f4ba7bc3179b05aae1177109b24d5ef65f",
+  "metric_semantics_flags_sha256": "9f5972cf7600d6715c39c4fc673ed644a2e2096295d95556d8421fcba9c620cc",
+  "metric": "t_settle_max",
+  "seed_per_fit": 42,
+  "n_train": 34,
+  "n_holdout": 19,
+  "excluded_train_ids": [
+    "D013",
+    "D014",
+    "D015",
+    "D016",
+    "D017",
+    "D023"
+  ],
+  "excluded_holdout_ids": [
+    "D047"
+  ],
+  "new_spice_evaluations": 0,
+  "new_gp_fits": 2,
+  "unit_scale": 1000000.0,
+  "model_B_train_unit": "seconds",
+  "model_C_train_unit": "microseconds",
+  "common_report_unit": "microseconds",
+  "b": {
+    "fit_seconds": 2.5637612320006156,
+    "device": "cuda",
+    "fit_stdout": [],
+    "mll_fallback_detected": false,
+    "fit_warnings": [],
+    "predict_warnings": [
+      {
+        "category": "NumericalWarning",
+        "message": "Negative variance values detected. This is likely due to numerical instabilities. Rounding negative variances up to 1e-10.",
+        "file": "gpytorch/distributions/multivariate_normal.py",
+        "line": 375
+      }
+    ]
+  },
+  "c": {
+    "fit_seconds": 1.3059234040010779,
+    "device": "cuda",
+    "fit_stdout": [],
+    "mll_fallback_detected": false,
+    "fit_warnings": [],
+    "predict_warnings": []
+  },
+  "b_metrics": {
+    "n": 19,
+    "mae_us": 7.93263290221432,
+    "rmse_us": 22.695089551338384,
+    "negative_mean_count": 0,
+    "approx_95_interval_hit_rate": 0.9473684210526315,
+    "std_min_us": 10.0,
+    "std_median_us": 10.0,
+    "std_max_us": 15.992854482726477,
+    "std_equal_10us_count": 18
+  },
+  "c_metrics": {
+    "n": 19,
+    "mae_us": 7.728487125405632,
+    "rmse_us": 22.1619530712513,
+    "negative_mean_count": 0,
+    "approx_95_interval_hit_rate": 0.6842105263157895,
+    "std_min_us": 1.0490048068990176,
+    "std_median_us": 1.7339629589746568,
+    "std_max_us": 16.887504243832527,
+    "std_equal_10us_count": 0
+  },
+  "delta_c_minus_b_mae_us": -0.20414577680868806,
+  "max_abs_b_refit_vs_stage3a_mean_diff_us": 0.0,
+  "max_abs_b_refit_vs_stage3a_std_diff_us": 0.0,
+  "max_abs_c_vs_b_mean_diff_us": 2.259413129223614,
+  "max_abs_c_vs_b_std_diff_us": 8.950995193100983,
+  "warnings_interpretation": "Recorded warning messages are numerical implementation diagnostics. Exact 10-us posterior std may be GPyTorch 1e-10 variance clipping, but do not claim this is established by coincidence alone.",
+  "limitations": [
+    "Confirmed invalid labels alone were removed; remaining labels lack waveform validity flags.",
+    "The holdout is adaptively chosen, not independent or iid.",
+    "Unit scaling is an input to the same GP implementation, not a new physical model.",
+    "A unit-sensitive change suggests numeric effects but does not prove their source.",
+    "The refitted B may differ from historical B on different GPU/library versions."
+  ]
+}
