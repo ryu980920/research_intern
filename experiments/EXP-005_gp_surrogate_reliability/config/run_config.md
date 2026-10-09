@@ -1,6 +1,6 @@
 # EXP-005 — GP Surrogate Reliability: 실행 조건과 평가 설계
 
-**Status:** Prepared (GP 검증 미실행) · **New SPICE evaluations:** **0**
+**Status:** Running (Stage 2/2b WSL 완료, Stage 3A 코드 준비) · **New SPICE evaluations:** **0**
 
 ## 1. Dataset & provenance
 
@@ -64,6 +64,22 @@ paired AC sentinels: D014, D047 (train 1, holdout 1).
 
 독립 확인/기록: `python experiments/EXP-005_gp_surrogate_reliability/scripts/diagnose_metric_semantics.py`.
 결과 `data/analysis/metric_semantics_audit.json` / `metric_semantics_flags.csv`. 신규 SPICE/GP 0회.
+
+## 4a. Matched A/B evaluation — Stage 3A (WSL 실행 대기)
+
+- Script: `scripts/compare_validity_aware_gp.py`
+- GP A: `data/analysis/gp_baseline_holdout_predictions.csv`에서 기존 실제 ATLAS GP 예측값 읽기. Stage-2 JSON 및 원본 SHA 검증.
+- GP B: 동일 `topbo.gp_model.GPSurrogate`, 각 metric별 학습셋만 확정 대체값 제외 (PM/UGBW 39, Settling 34). 각 GP 별 seed=42, 7D 입력과 Matérn 5/2 ARD 유지.
+- 평가: metric별 확정 무효 D047을 제외한 공통 D040–D059 **19개**; A와 B 모두 같은 설계점에서 MAE/RMSE/근사 95% 구간 포함률 비교. 무효 평가 레이블은 두 모델 모두 채점하지 않음.
+- 원본 60개 데이터는 절대 변경하지 않음. 제외된 failure design들은 실패 정보로 계속 보존.
+- 주의: 나머지 작은 `t_settle`도 전부 진정한 settling 시간인지는 알 수 없다. 파형 또는 시뮬레이터 출력에 측정 유효성 flag가 없다는 한계 명시.
+- 신규 SPICE 0회, 추가 B GP fitting 3회. 출력: `data/analysis/validity_aware_gp_comparison.csv`, `validity_aware_gp_summary.json`.
+
+```bash
+cd ~/research_intern
+git pull --ff-only
+python experiments/EXP-005_gp_surrogate_reliability/scripts/compare_validity_aware_gp.py
+```
 
 ## 4. Candidate improvements — Stage 3 (추출 의미를 명시한 뒤 진행)
 
