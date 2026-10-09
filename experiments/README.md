@@ -62,7 +62,7 @@ data/
 | --- | --- | --- | --- |
 | `EXP-001_pvt_init_params_baseline` | Completed | D000 한 점에서 17-corner PVT baseline 확보 | metric별 worst corner가 서로 다름, feasible 0 / 17 |
 | `EXP-002_atlas_initial_design_pvt` | Completed | ATLAS initial 20-point set을 multi-design PVT로 확대 | 20 × 17 = 340 evaluations, feasible 0 / 340, worst-corner mismatch 반복 확인 |
-| `EXP-003_tt_adaptive_feasible_discovery` | Ready to run | ATLAS adaptive TT search로 first feasible / boundary candidate 탐색 | budget 60, n_init 20, GP surrogate, early stop |
+| `EXP-003_tt_adaptive_feasible_discovery` | Planned / preflight 대기 | ATLAS adaptive TT search로 **최초 TT feasible point 및 joint violation 추세** 확인 | budget 60, n_init 20, GP surrogate, first feasible early stop; multi-island 검증은 범위 밖 |
 
 현재 연구 논리:
 
@@ -75,12 +75,17 @@ optimizer-default 20-point PVT pilot
         ↓
 feasible point 0
         ↓
-EXP-003
-TT adaptive feasible-boundary discovery
+EXP-003 (실행 전)
+first TT feasible / boundary discovery
         ↓
-selected candidate PVT
+후속 계획 A — TT Multi-Island Discovery
+first point 주변 + 서로 떨어진 feasible region 후보 탐색
         ↓
-corner-wise feasible structure analysis
+후속 계획 B — Same-Point 17-Corner PVT
+동일한 7D x 집합으로 각 corner의 region 변화 관찰
+        ↓
+후속 계획 C — Persistence Modeling / Baseline Comparison
+corner-wise information의 robust search 효율 검증
 ```
 
 Experiment 번호는 단순 작업 순서가 아니라 **독립적인 Research Question / Hypothesis가 명확해졌을 때** 부여한다.
