@@ -1,6 +1,6 @@
 # EXP-005 — GP Surrogate Reliability & Improvement
 
-**Status:** Prepared · **Date:** 2026-10-10 · **Circuit:** GF180 two-stage op-amp · **PVT:** TT 3.3 V / 27 °C · **New SPICE budget:** **0**
+**Status:** Prepared (Stage 1 audit run; GP validation pending) · **Date:** 2026-10-10 · **Circuit:** GF180 two-stage op-amp · **PVT:** TT 3.3 V / 27 °C · **New SPICE budget:** **0**
 
 ## Experiment at a Glance
 
@@ -8,7 +8,7 @@
 | --- | --- |
 | **왜 했는가?** | [EXP-004](../EXP-004_warm_start_smoke_test/README.md)에서 Warm Start는 성공했지만 PM 오차와 비물리적 Settling 예측이 관찰되어, 탐색 횟수를 늘리기 전에 GP의 신뢰성을 평가할 필요가 있음 |
 | **무엇을 하는가?** | EXP-003의 **60개 TT 실측**에서 이상값 점검 → 40개 학습/20개 시간순 검증 → 전처리·모델 비교 |
-| **무엇을 발견했는가?** | **Pending.** 아직 EXP-005 분석을 실행하지 않음. EXP-004의 D060 단일 예측 오차만으로 전체 GP 품질을 결론 내리지 않음 |
+| **무엇을 발견했는가?** | **Stage 1 완료(WSL 출력 확인):** 60개 중 점검 대상 7개, 중복 0개. GP Baseline의 holdout 결과는 **Pending** |
 | **그래서 다음은?** | 오류 원인을 데이터/전처리/모델 설정으로 좁히고, EXP-006에서 데이터 추가나 TT 탐색 확대 여부를 결정 |
 
 ## 01. Background & Motivation
@@ -54,7 +54,7 @@
 
 ## 04. Method & Procedure
 
-**Stage 1 — 데이터 점검 (코드 준비 완료, 아직 실행 전)**
+**Stage 1 — 데이터 점검 (WSL audit 실행 확인, 저장은 확인 대기)**
 
 1. D000~D059의 파라미터, 6개 성능값, 순서와 값의 유효성을 확인한다.
 2. PM≈-180°, UGBW≤1 Hz, 매우 긴 Settling(목표의 100배 초과) 등의 설계안을 **점검 대상으로 표시**한다.
@@ -69,12 +69,21 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/audit_tt_dataset.py
 
 기본 실행은 분석 결과만 출력한다. 확인 후 `--save`로 `data/analysis/`에 기록할 수 있으며 기존 결과를 덮어쓰지 않는다.
 
-**Stage 2 — 기존 GP baseline의 예측 성능 검증 (예정, 아직 코드 미구현)**
+**Stage 2 — 기존 GP baseline의 예측 성능 검증 (코드 구현 완료, WSL 실행 대기)**
 
 - 학습 40개로 GP 6개 모델을 학습하고 D040~D059의 실제 성능을 학습에서는 제외한다.
 - 각 metric의 GP mean/std와 실측을 비교하고 **MAE, RMSE, 정규화 오차, 예측 구간 포함률**을 계산한다.
 - GP fit 실패 시 원본 ATLAS가 기본 hyperparameter로 fallback할 수 있으므로 그 여부를 로그에서 분리해 기록한다.
 - 적응형 탐색으로 수집된 20개 검증 설계점은 iid 샘플이 아니므로 외삽 정확도의 일반화를 피한다.
+
+실행 코드: [scripts/evaluate_gp_baseline.py](scripts/evaluate_gp_baseline.py). **실제 ATLAS `GPSurrogate`를 그대로 사용**하며 기존 YAML/ATLAS commit을 검증한다. SPICE 실행 없이 6개 모델 fit → D040–D059 예측 120행을 계산한다. GP의 `MLL fit failed` 메시지를 별도로 기록한다.
+
+```bash
+cd ~/research_intern
+python experiments/EXP-005_gp_surrogate_reliability/scripts/evaluate_gp_baseline.py
+```
+
+결과는 `data/analysis/gp_baseline_holdout_predictions.csv` 및 `gp_baseline_holdout_summary.json`에 저장한다(덮어쓰기 금지). 이 실행은 GP fitting을 수행하며 **ngspice는 호출하지 않는다**.
 
 **Stage 3 — 개선 가설 비교 (예정)**
 
@@ -97,16 +106,19 @@ MAE/RMSE는 성능별 단위가 다르므로 metric 간 원시 오차값을 직�
 
 ## 06. Results & Figures
 
-**Pending — EXP-005 코드와 실험 문서를 준비한 상태. 아직 데이터 audit 또는 GP validation을 수행하지 않았다.**
+**Pending — Stage 1 audit는 WSL 출력으로 완료 확인. Stage 2 GP baseline 학습 및 20개 holdout 결과는 아직 실행하지 않았다.**
 
 예정 산출물:
 
 ```text
 scripts/
-  audit_tt_dataset.py         # Stage 1, 구현 완료
+  audit_tt_dataset.py         # Stage 1, 구현/실행 확인
+  evaluate_gp_baseline.py     # Stage 2, 구현/실행 대기
 data/analysis/
   dataset_audit.json          # Stage 1 실행 후 생성
-  anomaly_flags.csv           # Stage 1 실행 후 생성
+  anomaly_flags.csv           # Stage 1 --save 실행 후 생성
+  gp_baseline_holdout_predictions.csv   # Stage 2 실행 후 120행
+  gp_baseline_holdout_summary.json       # Stage 2 실행 후 MAE/RMSE/coverage/fallback
   ...                         # Stage 2/3 metric-wise prediction/error (추후 정의)
 figures/
   ...                         # Stage 2/3 예측 vs 실측 및 오차 시각화
@@ -132,6 +144,6 @@ EXP-005에는 **새로운 SPICE 관측값이 없으므로** 이전 실험의 `de
 
 ## 09. Conclusion & Next Experiment
 
-**결론 보류.** 실험 질문만 정하고 파일과 Stage 1 audit 코드를 준비했다. 이후 관측된 예측 오차를 바탕으로 기존 GP를 유지할지, 출력 변환 또는 국소 모델을 채택할지, 추가 데이터를 확보할지 결정한다.
+**결론 보류.** Stage 1 audit 결과에서 60개 중 7개 설계점이 점검 대상으로 표시됐고 중복 설계점은 없었다. 이것만으로 GP의 예측 실패 원인은 결정할 수 없다. Stage 2 Baseline GP 검증 코드가 준비됐으며 실제 결과는 실행 대기다. 이후 관측된 예측 오차를 바탕으로 기존 GP를 유지할지, 출력 변환 또는 국소 모델을 채택할지, 추가 데이터를 확보할지 결정한다.
 
 **후속 EXP-006 (조건부):** EXP-005에서 데이터 부족이 병목이라고 판단되면 GP 예측 불확실성 및 near-feasible 영역을 고려하여 신규 TT 설계점의 평가 예산과 위치를 설계한다.
