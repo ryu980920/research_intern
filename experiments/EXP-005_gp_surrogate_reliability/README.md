@@ -1,6 +1,6 @@
 # EXP-005 — GP Surrogate Reliability & Improvement
 
-**Status:** Running (Stage 1/2/2b/3A/3B executed; post-run analysis pending) · **Date:** 2026-10-10 · **Circuit:** GF180 two-stage op-amp · **PVT:** TT 3.3 V / 27 °C · **New SPICE budget:** **0**
+**Status:** Paused after Stage 3B-2 (2026-10-10; no Stage 4 performed) · **Date:** 2026-10-10 · **Circuit:** GF180 two-stage op-amp · **PVT:** TT 3.3 V / 27 °C · **New SPICE budget:** **0**
 
 ## Experiment at a Glance
 
@@ -9,7 +9,7 @@
 | **왜 했는가?** | [EXP-004](../EXP-004_warm_start_smoke_test/README.md)에서 Warm Start는 성공했지만 PM 오차와 비물리적 Settling 예측이 관찰되어, 탐색 횟수를 늘리기 전에 GP의 신뢰성을 평가할 필요가 있음 |
 | **무엇을 하는가?** | EXP-003의 **60개 TT 실측**에서 이상값 점검 → 40개 학습/20개 시간순 검증 → 전처리·모델 비교 |
 | **무엇을 발견했는가?** | **Stage 1:** 60개 중 7개 조사 대상. **Stage 2:** 원본 GP 40/20 검증, PM MAE 28.73°. **Stage 2b:** Settling의 무차원 fallback이 시간 필드에 혼합됨을 확인. **Stage 3A:** 대체값 제외 GP(B)는 PM·Settling 오차 감소, UGBW 오차 증가. Settling B의 분산 경고 발견 |
-| **그래서 다음은?** | **Stage 3B 실행 결과:** 초 단위 B에서 분산 경고 1건/표준편차 10 µs 18개, µs 단위 C에서 경고 0건/10 µs 0개. 단위에 민감한 수치 계산 현상 발견. → 설계점별 분산·보정 위치 확인 및 물리적 유효성 레이블 정의 → 필요 시 EXP-006 판단 |
+| **그래서 다음은?** | Stage 3B-2에서 B의 10 µs 반복이 GP 분산 하한 보정으로 발생함을 확인했다. **이후 EXP-005 보류**. 먼저 [ATLAS 논문 재현 조건 감사](../../docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md)를 수행한 다음 후속 연구 우선순위를 결정한다. |
 
 ## 01. Background & Motivation
 
@@ -331,6 +331,14 @@ EXP-005에는 **새로운 SPICE 관측값이 없으므로** 이전 실험의 `de
 - Stage 3A 유효성 평가도 **D047만 확실하게 제외한 19개 임시 holdout**에 대한 결론이다. 선택 편향·단일 seed·소표본 한계가 있다.
 - 로컬 Stage 2 summary와 Stage 2b audit/flag 파일 자체의 GitHub 반영은 아직 완료되지 않았다. 업로드된 Stage 2/3A 파일의 byte-preserved SHA256은 archive README에 남겼다.
 - TT-only의 GP 신뢰성은 17-corner robust feasibility 또는 feasible island persistence의 증거가 아니다.
+
+## 08a. 연구 방향 변경 — 2026-10-10 일시 보류
+
+- **EXP-005 단계:** Stage 1/2/2b/3A/3B/3B-2 완료. 이후 Stage 3C/4는 아직 수행하지 않았다.
+- **보류 이유:** 이 EXP에서 얻은 PM 오차와 GPyTorch 분산 하한 효과는 특정 실험·데이터·설정에 대한 관찰이다. 이를 논문으로 검증된 ATLAS 최적화 방법 전체의 실패로 확대해서는 안 된다.
+- **우선순위 변경:** 본 저장소의 **EXP-003 budget60/seed42 실행**과 **ATLAS ICCAD 2026 논문 500 evaluations/10 runs**를 같은 baseline이라 가정하지 않고, 실제 설정 차이부터 비교한다.
+- **이어받을 작업:** [docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md](../../docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md). 신규 SPICE 평가 전에 code SHA, PDK model/hash, ngspice executable, seed/initial design, fixed-vs-random targets를 확인한다.
+- **데이터 정책:** EXP-005의 결과·실패 기록·코드·archive는 그대로 보존하며 새 GP fit 또는 SPICE 호출은 승인된 별도 Experiment가 정의되기 전까지 하지 않는다.
 
 ## 09. Conclusion & Next Experiment
 
