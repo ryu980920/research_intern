@@ -188,18 +188,29 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 
 ## Next
 
-### Step 1 — ATLAS post-initial adaptive candidate selection 이해
+### Step 1 — EXP-003: ATLAS TT adaptive feasible discovery
 
-D000-D019는 optimization 전에 미리 정해지는 initial design set이다.
+2026-10-09 code audit에서 post-initial candidate flow를 확인했고, standard runner의 n_init 계산도 다시 검증했다.
 
-다음 단계에서는 initial 20 points 이후 ATLAS가 실제로 adaptive하게 다음 candidate를 만드는 흐름을 코드로 확인한다.
+EXP-003은 budget 60을 사용한다.
 
-특히 확인할 항목:
+```text
+n_params = 7
+budget = 60
+→ standard n_init_for() = 20
+```
 
-- initial observations가 surrogate에 어떻게 들어가는가
-- acquisition이 어떤 값을 기준으로 candidate를 선택하는가
-- D020 이후 candidate가 어떤 함수에서 생성되는가
-- feasibility information이 candidate selection에 어떻게 반영되는가
+따라서 EXP-002의 D000-D019 definition과 맞춘 상태에서 D020 이후 adaptive trajectory를 관찰할 수 있다.
+
+실험 설정:
+
+- TT-only
+- budget 60
+- seed 42
+- n_init 20
+- GP surrogate 고정
+- first feasible에서 early stop
+- full parameter + metric trajectory 보존
 
 ### Step 2 — TT feasible / near-feasible search 설계
 
