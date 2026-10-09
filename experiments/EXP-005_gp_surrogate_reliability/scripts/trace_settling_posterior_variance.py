@@ -194,6 +194,8 @@ def main():
     X_test = np.array([[r[p] for p in PARAMS] for r in test], dtype=float)
     Y_s = np.array([r[METRIC] for r in train], dtype=float)
 
+    atlas_root = Path(os.environ.get("ATLAS_ROOT", "~/atlas")).expanduser().resolve()
+    sys.path.insert(0, str(atlas_root))
     import torch
     import gpytorch
     from topbo.gp_model import GPSurrogate
