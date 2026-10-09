@@ -1,6 +1,6 @@
 # EXP-005 — GP Surrogate Reliability: 실행 조건과 평가 설계
 
-**Status:** Running (Stage 1/2/2b/3A WSL 완료; Stage 3B planned) · **New SPICE evaluations:** **0**
+**Status:** Running (Stage 1/2/2b/3A/3B WSL 완료; Stage 3B 상세 검증 대기) · **New SPICE evaluations:** **0**
 
 ## 1. Dataset & provenance
 
@@ -95,14 +95,16 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/compare_validity_awa
 - Stage 2 및 Stage 3A 사용자 업로드 결과를 **`data/analysis/archive/`**에 보존(원본 WSL 분석 경로와 `git pull` 충돌 방지), 원본 raw 데이터는 EXP-003에 유지. Provenance: [archive README](../data/analysis/archive/README.md).
 - 시간순 연구 기록: [2026-10-10 log](../../../logs/2026-10/2026-10-10.md).
 
-## 4b. Numerical stability — Stage 3B (코드 구현 완료, WSL 실행 대기)
+## 4b. Numerical stability — Stage 3B (실제 WSL 실행 완료)
 **Prepared executable:** `scripts/test_settling_gp_unit_stability.py`
 
 - 두 모델 B(s) / C(µs) 각각 GP fit 1회씩 수행. 동일 seed=42, X_train=34, X_holdout=19, 같은 `t_settle_max` mask와 Matérn ARD kernel 사용. Stage 3A 저장된 B를 참조해 rerun consistency 점검.
 - C의 posterior mean **및 std 모두 1e6으로 나누어** B와 비교(공통 물리적 단위: seconds, 표시 µs).
 - 수치 안정성 진단: `NumericalWarning` 포함 경고 목록, 예측 19개의 std==10µs 개수, MAE/RMSE, 음수 예측, posterior interval hit, GP fit fallback, Stage 3A B 재현 오차.
 - `gp_model.py` 변경하지 않으며 기존 파일을 덮어쓰지 않음. 결과는 신규 `stage3b_settling_unit_comparison.csv`와 `stage3b_settling_unit_summary.json`에 생성.
-- 결과 미실행. 개선 여부·분산 보정 원인 단정 금지.
+- **실제 결과:** seconds GP B: MAE **7.93263 µs**, std 10 µs **18/19**, 음수 분산 경고 1건. microseconds GP C: MAE **7.72849 µs**, std 10 µs **0/19**, 경고 0건. B는 Stage 3A의 평균·표준편차를 오차 0 µs로 재현했고, B↔C 최대 평균 차이 **2.25941 µs**, std 차이 **8.951 µs**. CUDA 사용, fit B 2.56s/C 1.31s, 신규 SPICE 0회.
+- **보류:** 수치 표현 단위에 따라 posterior 계산이 달라진 것은 관찰됐으나, clipping이 정확히 어디서 발생했는지, GP C의 불확실성이 적절한지는 미확정. MAE 약 2.57% 감소를 일반화하지 않는다.
+- 출력은 사용자 WSL에 생성됨. `stage3b_settling_unit_comparison.csv`와 `stage3b_settling_unit_summary.json`의 GitHub 업로드는 아직 완료되지 않았다.
 
 ```bash
 cd ~/research_intern
