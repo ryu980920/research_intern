@@ -17,7 +17,7 @@ _Last updated: 2026-10-10_
 - **EXP-003:** TT-only에서 D000~D019 재평가 + GP adaptive D020~D059 = **60 TT evaluations, feasible 0**. 최선의 near-feasible design은 D050 (PM=54.16°, UGBW=20.33 MHz, PASS 5/6, worst_margin=-0.0973).
 - 첨부된 ATLAS `iterations.jsonl` 60행을 검증했다. GP fit_time이 adaptive 40회 모두 기록됐으나 **각 GP MLL fit의 성공과 예측 정확도는 아직 미검증**이다.
 
-**다음 연구 단계:** [EXP-005](experiments/EXP-005_gp_surrogate_reliability/README.md)는 **Prepared**이다. EXP-004는 Warm Start 60개 재사용 + 신규 D060 TT 평가 **1회**로 기능 검증을 완료했으나, PM 예측 평균 59.995°(실측 38.107°), 비물리적 Settling 예측 평균 등 모델 신뢰성 문제가 드러났다. **EXP-005에서는 신규 SPICE 0회**로 EXP-003의 60개 TT 데이터를 점검하고, 학습 D000–D039/검증 D040–D059 분할에서 GP 오차·불확실성·fit fallback을 분석한 후 로그 타깃/국소 모델 등의 개선을 비교한다. 데이터가 실제로 더 필요하다는 근거가 생기면 **EXP-006**에서 신규 TT 평가 예산을 정한다. 아직 TT feasible 및 feasible island topology는 확인되지 않았다.
+**다음 연구 단계:** [EXP-005](experiments/EXP-005_gp_surrogate_reliability/README.md)는 **Running**이다. EXP-004는 Warm Start 60개 재사용 + 신규 D060 TT 평가 **1회**로 기능 검증을 완료했으나, PM 예측 평균 59.995°(실측 38.107°), 비물리적 Settling 예측 평균 등 모델 신뢰성 문제가 드러났다. **EXP-005에서는 신규 SPICE 0회**로 EXP-003의 60개 TT 데이터를 점검하고, 학습 D000–D039/검증 D040–D059 분할에서 GP 오차·불확실성·fit fallback을 분석한 후 로그 타깃/국소 모델 등의 개선을 비교한다. 데이터가 실제로 더 필요하다는 근거가 생기면 **EXP-006**에서 신규 TT 평가 예산을 정한다. 아직 TT feasible 및 feasible island topology는 확인되지 않았다.
 
 장기 질문은 계속 같다.
 
@@ -210,9 +210,9 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 
 - **RQ:** 기존 GP 예측 오차가 data quality·극단값·모델링/fit 문제 중 어디와 연결되는가? 관측값 부족이 실제 병목인가?
 - **Stage 1 (WSL 실행 완료):** EXP-003 `raw/trajectory.csv` 60개 점검. **점검 대상 7개**, PM -180° 근처 2개, UGBW ≤1 Hz 2개, Settling >600 µs 7개(플래그 중복 가능); **중복 설계점 0개**. 이상값의 실제 원인은 **아직 미확인**. `--save` 기록은 별도 실행 전.
-- **Stage 2 (코드 구현, WSL 실행 대기):** [evaluate_gp_baseline.py](experiments/EXP-005_gp_surrogate_reliability/scripts/evaluate_gp_baseline.py)에서 **실제 ATLAS `GPSurrogate`**를 D000–D039 train 40으로 학습하고 D040–D059 holdout 20의 6개 metric(총 120예측)에 대한 MAE/RMSE/구간 포함률·MLL fallback을 보존. **신규 SPICE 0회**.
-- **Stage 3 (미구현):** Baseline 결과 검토 후 동일 분할에서 로그 타깃 개선과 필요시 국소 GP 비교.
-- **중요:** D040–D059는 adaptive 탐색으로 선택된 데이터이며 iid 일반화 성능을 보장하지 않는다. GP의 Settling 음수 예측은 관찰된 문제지만 그 원인은 미확인.
+- **Stage 2 (WSL 실행 완료):** 실제 ATLAS GP를 D000–D039(40개) 학습하고 D040–D059(20개×6 metric=120예측) 검증. PM MAE 28.73°, Settling MAE 53.24 ms(아래의 데이터 단위 혼합 때문에 물리적 시간 오차로 해석 불가), 20개 중 Settling GP 음수 평균 8개. Fit 8.51s, 캡처된 MLL fallback 메시지 없음. **신규 SPICE 0회**. 예측 CSV는 사용자가 채팅에 첨부했고, local Git commit은 아직 미확인.
+- **Stage 2b (소스 검증 완료, WSL 기록 실행 대기):** [diagnose_metric_semantics.py](experiments/EXP-005_gp_surrogate_reliability/scripts/diagnose_metric_semantics.py) 준비. 고정 ATLAS `CircuitClass.py`는 unity-crossing 실패 시 UGBW=AC 첫 주파수(1 Hz), PM=-180° 반환; settling 실패 시 **무차원 `d_settle`을 `settlingTime` 필드에 저장**. GF180 TT transient는 401 µs 길이인데 7개(D013/014/015/016/017/023/047)의 `t_settle`은 이를 초과(학습 6/검증 1), AC paired sentinel은 D014/D047. **Stage 3은 단위가 혼합된 레이블을 분리한 후** 원본 GP vs validity-aware raw/log-GP를 비교.
+- **중요:** D040–D059는 adaptive 탐색으로 선택된 데이터이며 iid 일반화 성능을 보장하지 않는다. 기존 Settling MAE는 시간과 무차원 fallback이 섞인 label에 대한 수학적 오차이고, 남은 소형 settling 값도 waveform 없이는 유효성 미확인이다. 이 확인만으로 GP 품질 전체의 원인을 단정하지 않는다.
 - **Budget:** 현재 EXP-005에서 **추가 ngspice 설계 평가 0개**. 이후 필요성이 입증될 때 EXP-006에서 별도로 결정.
 - **문서:** [EXP-005 README](experiments/EXP-005_gp_surrogate_reliability/README.md), [실험 설정](experiments/EXP-005_gp_surrogate_reliability/config/run_config.md).
 
