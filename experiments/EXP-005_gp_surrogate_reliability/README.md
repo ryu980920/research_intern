@@ -113,11 +113,25 @@ git pull --ff-only
 python experiments/EXP-005_gp_surrogate_reliability/scripts/compare_validity_aware_gp.py
 ```
 
-**Stage 3B — 단위에 따른 Settling GP 수치 안정성 검증 (계획, 미실행)**
+**Stage 3B — 단위에 따른 Settling GP 수치 안정성 검증 (실행 코드 준비, WSL 미실행)**
 
 - GP B에서 **GPyTorch Negative variance 경고**가 출력됐고, Settling B 예측 표준편차가 **19개 중 18개에서 1e-5 s = 10 µs**로 동일했다.
 - **가설적 후속 비교:** Settling B의 **동일한 학습 34개 / 검증 19개**에서 target 단위만 초(s) → 마이크로초(µs)로 변경하고 공통 단위로 역변환해 평균·MAE/RMSE·분산/표준편차·경고 여부를 비교한다.
 - 아직 실행하지 않았다. 단위 변환이 안정성을 개선한다는 결론은 없음.
+
+
+
+실행 스크립트: [scripts/test_settling_gp_unit_stability.py](scripts/test_settling_gp_unit_stability.py). 원본 GF180 실험이나 Stage 3A 결과를 덮어쓰지 않는다.
+
+실험은 **GP B를 동일 설정으로 한 번 재학습(재현성 검증)**한 뒤, **GP C에 동일한 34개 출력값만 10^6배로 변경해 한 번 더 학습**한다. 같은 D040~D059 중 D047을 뺀 19개에서 예측을 수행하고 **평균과 표준편차를 모두 µs로 환산**한다. 경고 메시지·음수 평균 수·표준편차 10 µs 동일값 개수·Stage 3A B와의 재현 차이·MAE/RMSE를 별도로 기록한다. 결과 파일은 \`data/analysis/stage3b_settling_unit_comparison.csv\`, \`stage3b_settling_unit_summary.json\`이며 신규 SPICE는 0회다.
+
+\`\`\`bash
+cd ~/research_intern
+git pull --ff-only
+python experiments/EXP-005_gp_surrogate_reliability/scripts/test_settling_gp_unit_stability.py
+\`\`\`
+
+출력 \`MLL_fallback\`과 음수 분산 경고는 다른 문제다. 경고가 사라진다는 것만으로 GP가 정확하거나 uncertainty-calibrated 모델이 됐다고 결론 내릴 수 없다. 실행 결과 수치를 확인한 뒤에만 Stage 3B의 결론을 기재한다.
 
 **Stage 3C 및 이후 — 측정 유효성/실패 영역 처리 (추후 검토)**
 
@@ -186,6 +200,7 @@ scripts/
   evaluate_gp_baseline.py     # Stage 2, GP 학습/검증 WSL 실행 완료
   diagnose_metric_semantics.py # Stage 2b, extractor 소스 판정 확인/WSL 실행 완료
   compare_validity_aware_gp.py # Stage 3A, GP(A) vs 대체값 제외 GP(B) WSL 실행 완료
+  test_settling_gp_unit_stability.py  # Stage 3B, 수치 안정성 비교 실행 대기
 data/analysis/
   dataset_audit.json          # Stage 1 실행 후 생성
   anomaly_flags.csv           # Stage 1 --save 실행 후 생성
@@ -195,6 +210,8 @@ data/analysis/
   metric_semantics_flags.csv             # Stage 2b 실행 완료, 설계점별 유효성 판정
   validity_aware_gp_comparison.csv       # Stage 3A 실행 후, 동일 검증점별 A/B 오차
   validity_aware_gp_summary.json         # Stage 3A 실행 후 지표별 MAE/RMSE/coverage
+  stage3b_settling_unit_comparison.csv   # Stage 3B 실행 후 설계점별 B/C 결과
+  stage3b_settling_unit_summary.json     # Stage 3B 실행 후 단위/분산경고/차이 검증
   ...                         # Stage 2/3 metric-wise prediction/error (추후 정의)
 figures/
   ...                         # Stage 2/3 예측 vs 실측 및 오차 시각화
