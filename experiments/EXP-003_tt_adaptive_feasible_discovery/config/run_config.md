@@ -99,14 +99,14 @@ Execution evidence:
 
 ## Budget Accounting
 
-\`\`\`text
+```text
 budget = 60 (maximum number of TT design evaluations)
 n_init = 20
 adaptive = up to 40
 
 D000-D019 = initial
 D020-D059 = adaptive (if no early stop)
-\`\`\`
+```
 
 이 'evaluation 1회'는 **설계 파라미터 한 조합을 TT에서 평가하는 단위**다. 한 TT 평가 내부에서 AC, DC, transient 등 여러 종류의 SPICE 분석이 일어나므로, subprocess 총 횟수와 같지 않다.
 
@@ -114,11 +114,11 @@ D020-D059 = adaptive (if no early stop)
 
 최초 feasible 발견 시 종료하는 것은 **EXP-003 pilot을 위한 정책**이다. 후속 multi-island 탐색에서는 다른 island를 발견하기 위해 early stop을 끄거나 독립 seed run을 별도로 설계해야 한다.
 
-이 budget 60은 과학적으로 최적인 예산으로 입증된 것이 아니다. 7 parameters에서 standard \`n_init_for()\`가 20이 되도록 맞춘, 제한된 pilot budget이다.
+이 budget 60은 과학적으로 최적인 예산으로 입증된 것이 아니다. 7 parameters에서 standard `n_init_for()`가 20이 되도록 맞춘, 제한된 pilot budget이다.
 
 ## Initial Data Reuse Policy
 
-\`run_adaptive_tt_search.py\`는 EXP-001/002의 committed TT metric CSV를 optimizer에 직접 주입해 warm-start하지 않는다.
+`run_adaptive_tt_search.py`는 EXP-001/002의 committed TT metric CSV를 optimizer에 직접 주입해 warm-start하지 않는다.
 
 **D000-D019를 TT에서 다시 실제 시뮬레이션**한다. 따라서:
 
@@ -129,7 +129,7 @@ D020-D059 = adaptive (if no early stop)
 
 ## Optimizer and Decision Logic
 
-\`\`\`text
+```text
 X/Y observations
 → GP surrogate refit
 → 50,000 candidate generation
@@ -139,32 +139,32 @@ X/Y observations
 → one x_next selected
 → one actual TT evaluation
 → observation appended
-\`\`\`
+```
 
-- \`F_hat\` / \`beta0\`: 모델에서 예측한 near-feasible structure; 실제 SPICE 기반 feasible-island 수가 아님.
+- `F_hat` / `beta0`: 모델에서 예측한 near-feasible structure; 실제 SPICE 기반 feasible-island 수가 아님.
 - 내부 surrogate의 working constraints는 infeasible 단계에서 완화될 수 있지만 **feasible 판정은 본 config의 original target specs**를 사용.
-- \`surrogate=gp\`를 선택한 이유: \`auto\`에서 학습 시간에 따른 NN 전환 변수를 배제해 trajectory 비교를 단순화하기 위함.
+- `surrogate=gp`를 선택한 이유: `auto`에서 학습 시간에 따른 NN 전환 변수를 배제해 trajectory 비교를 단순화하기 위함.
 
 ## Derived Metrics and Interpretation
 
-Minimum constraint (\`gain_min, ugbw_min, phm_min, vswing_min\`):
+Minimum constraint (`gain_min, ugbw_min, phm_min, vswing_min`):
 
-\`\`\`text
+```text
 margin = (measured - target) / abs(target)
-\`\`\`
+```
 
-Maximum constraint (\`ibias_max, t_settle_max\`):
+Maximum constraint (`ibias_max, t_settle_max`):
 
-\`\`\`text
+```text
 margin = (target - measured) / abs(target)
-\`\`\`
+```
 
 Calculated columns:
 
-- \`n_specs_passed\`: original specs 통과 개수
-- \`worst_margin\`: 6개 normalized margins의 최소값
-- \`total_violation\`: \`sum(max(0, -margin))\`
-- \`feasible\`: **한 design이 여섯 target을 동시에 만족**
+- `n_specs_passed`: original specs 통과 개수
+- `worst_margin`: 6개 normalized margins의 최소값
+- `total_violation`: `sum(max(0, -margin))`
+- `feasible`: **한 design이 여섯 target을 동시에 만족**
 
 예: PM 30° / target 60°이면 margin = -0.5. 이 design이 나머지 다섯 spec을 통과했더라도, phase margin이 50% 부족하므로 spec pass count만으로 "feasible 경계에 매우 가깝다"고 판단하지 않는다.
 
@@ -172,22 +172,22 @@ Calculated columns:
 
 | Figure | Input | Decision |
 | --- | --- | --- |
-| worst_margin vs iteration | \`data/trajectory.csv\` | 가장 나쁜 spec이 0 경계 쪽으로 개선되는가? |
-| total_violation vs iteration | \`data/trajectory.csv\` | 실패 항목들의 전체 위반량이 줄어드는가? |
-| per-spec margins vs iteration | \`data/trajectory.csv\` | PM을 높이면서 Gain/UGBW가 악화되는 trade-off가 있는가? |
-| parameter trajectory | \`data/trajectory.csv\` | ATLAS가 어느 설계 변수를 움직이는가? |
-| beta0 / n_F_hat diagnostic | \`raw/atlas_logs/<run_id>/iterations.jsonl\` | predicted topology 변화와 실제 개선이 관련되어 보이는가? |
+| worst_margin vs iteration | `data/trajectory.csv` | 가장 나쁜 spec이 0 경계 쪽으로 개선되는가? |
+| total_violation vs iteration | `data/trajectory.csv` | 실패 항목들의 전체 위반량이 줄어드는가? |
+| per-spec margins vs iteration | `data/trajectory.csv` | PM을 높이면서 Gain/UGBW가 악화되는 trade-off가 있는가? |
+| parameter trajectory | `data/trajectory.csv` | ATLAS가 어느 설계 변수를 움직이는가? |
+| beta0 / n_F_hat diagnostic | `raw/atlas_logs/<run_id>/iterations.jsonl` | predicted topology 변화와 실제 개선이 관련되어 보이는가? |
 
 현재 Figure나 Results는 아직 생성/확인된 것이 아니다.
 
 ## Reproducibility and Failure Checks
 
 - 실행 전 ATLAS commit hash 확인
-- 사용 중인 PDK \`design.ngspice\`의 statistical switches가 실제로 0인지 확인
+- 사용 중인 PDK `design.ngspice`의 statistical switches가 실제로 0인지 확인
 - 로컬 PDK 모델 **경로와 include 경로**가 현재 PC와 맞는지 확인
 - ngspice 버전 / 사용 executable 확인
 - D000-D019 baseline TT 비교
-- \`feasible\`, \`worst_margin\` 계산 결과의 일치 여부 확인
+- `feasible`, `worst_margin` 계산 결과의 일치 여부 확인
 - metric이 NaN, penalty, sentinel 또는 물리적으로 이상한 값이면 해당 corner/netlist/waveform을 재검증하고 그대로 수치 해석하지 않기
 
 ## Follow-up Branching Rule
@@ -198,4 +198,4 @@ Calculated columns:
 
 **후속 multi-island 연구:** EXP-003 이후 first feasible 근처 local 탐색뿐 아니라 멀리 떨어진 feasible component의 가능성을 global sampling / 여러 seed / 다른 출발점으로 확인해야 한다. 7차원 연결성을 2D 투영만으로 판정하지 않는다.
 
-**후속 17-corner 비교:** 서로 다른 TT region 후보 A/B/...에서 선택한 **동일한 design_id와 동일한 7D x**를 각 corner에 적용해 결과를 \`design_points.csv\` + \`corner_metrics.csv\`에 보존한다. 그 뒤 persistence 정의와 robust-search baseline 비교를 설계한다.
+**후속 17-corner 비교:** 서로 다른 TT region 후보 A/B/...에서 선택한 **동일한 design_id와 동일한 7D x**를 각 corner에 적용해 결과를 `design_points.csv` + `corner_metrics.csv`에 보존한다. 그 뒤 persistence 정의와 robust-search baseline 비교를 설계한다.
