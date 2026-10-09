@@ -36,7 +36,9 @@ from compare_validity_aware_gp import (
     read_flags,
 )
 from diagnose_metric_semantics import (
-    FLAGS_CSV, FLAGS_JSON, get_codes_and_horizons,
+    OUTPUT_CSV as FLAGS_CSV,
+    OUTPUT_JSON as FLAGS_JSON,
+    get_codes_and_horizons,
 )
 from evaluate_gp_baseline import N_TRAIN, N_TEST, SEED, Z_95, check_config
 
@@ -189,7 +191,6 @@ def main():
     import torch
     from topbo.gp_model import GPSurrogate
 
-    max_spec_seconds = float(targets[METRIC][1][0]) if False else None
     # The YAML supplies a fixed upper-bound target [low,high]; the GP 'fit'
     # does not depend on this number, but keep its units consistent anyway.
     spec_range = targets[METRIC]
