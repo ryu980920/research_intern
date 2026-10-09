@@ -62,7 +62,7 @@ data/
 | --- | --- | --- | --- |
 | `EXP-001_pvt_init_params_baseline` | Completed | D000 한 점에서 17-corner PVT baseline 확보 | metric별 worst corner가 서로 다름, feasible 0 / 17 |
 | `EXP-002_atlas_initial_design_pvt` | Completed | ATLAS initial 20-point set을 multi-design PVT로 확대 | 20 × 17 = 340 evaluations, feasible 0 / 340, worst-corner mismatch 반복 확인 |
-| Next experiment | Planning | TT feasible / near-feasible region을 adaptive search로 찾기 | Experiment 번호는 설계 확정 후 부여 |
+| `EXP-003_tt_adaptive_feasible_discovery` | Ready to run | ATLAS adaptive TT search로 first feasible / boundary candidate 탐색 | budget 60, n_init 20, GP surrogate, early stop |
 
 현재 연구 논리:
 
@@ -71,11 +71,11 @@ EXP-001
 one-point corner-wise baseline
         ↓
 EXP-002
-ATLAS initial 20-point PVT pilot
+optimizer-default 20-point PVT pilot
         ↓
 feasible point 0
         ↓
-next
+EXP-003
 TT adaptive feasible-boundary discovery
         ↓
 selected candidate PVT
