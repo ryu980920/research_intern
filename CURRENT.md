@@ -1,6 +1,6 @@
 # CURRENT — Research Status
 
-_Last updated: 2026-10-04_
+_Last updated: 2026-10-09_
 
 ## Long-term Goal
 
@@ -10,7 +10,7 @@ _Last updated: 2026-10-04_
 
 **Optimizer-default 20-point PVT pilot completed — adaptive TT search design is next**
 
-ATLAS의 기본 실행 흐름과 PVT aggregation 방식을 실제 코드로 추적했고, EXP-001 + EXP-002를 통해 ATLAS가 optimization 시작 시 사용하는 initial 20 design points를 17개 PVT corner에서 모두 평가했다.
+ATLAS의 기본 실행 흐름과 PVT aggregation 방식을 실제 코드로 추적했고, EXP-001 + EXP-002를 통해 **optimizer-default `n_init=20`으로 생성한 initial 20 design points**를 17개 PVT corner에서 모두 평가했다.
 
 현재 핵심 연구 질문은 그대로 유지한다.
 
@@ -176,73 +176,76 @@ n_init_for(evaluator, budget)
 
 two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에서는 `n_init=21`이다.
 
-따라서 이후 adaptive trajectory 실험에서는 **EXP-002의 20-point pilot을 그대로 이어갈지, standard runner의 21-point baseline에 맞출지 먼저 결정**해야 한다.
+현재 EXP-003은 **budget=60**을 선택했으므로 standard `n_init_for()`도 **20**을 반환한다. 이로써 초기 D000–D019 definition을 EXP-002와 맞췄다. 다만 EXP-003 script는 기존 CSV로 warm start하지 않고 **초기 20점을 TT에서 다시 시뮬레이션**한다.
 
 ## Current Questions
 
-1. initial 20-point에서 feasible이 0개인 이유는 단순 sample 부족인가, spec trade-off 구조 때문인가?
-2. ATLAS adaptive search는 initial 20 points 이후 어떤 surrogate / acquisition 정보로 다음 candidate를 제안하는가?
-3. TT feasible 또는 near-feasible region을 어떻게 정량적으로 정의할 것인가?
-4. TT에서 확보한 후보를 17-corner PVT로 넘겼을 때 corner별 feasibility가 어떻게 달라지는가?
-5. 충분한 feasible point가 확보되면 worst-case compression과 corner-wise feasible structure의 차이가 candidate selection에 실제 영향을 주는가?
+1. ATLAS의 첫 adaptive evaluation인 D020 이후, 6개 TT spec의 **joint violation**이 실제로 줄어드는가?
+2. 최초 TT feasible point를 발견할 수 있는가? 불가능하다면 어느 spec이 bottleneck으로 남는가?
+3. **TT feasible point가 발견되더라도** 주변만 탐색하면 다른 disconnected TT feasible island를 놓치지 않는가?
+4. TT에서 서로 떨어진 feasible region 후보들이 실제 7차원 공간에서도 연결되어 있는가, 독립적인가?
+5. 같은 7D parameter points를 17 PVT corners에서 평가하면 어떤 region이 유지·축소·소멸·분리되는가?
+6. corner-wise 정보를 활용하는 방법이 metric-wise worst-case baseline보다 **동일 비용에서** robust design을 더 효율적으로 찾는가?
 
 ## Next
 
-### Step 1 — EXP-003: ATLAS TT adaptive feasible discovery
+### Step 1 — EXP-003: TT Adaptive First-Feasible Discovery (실행 전)
 
-2026-10-09 code audit에서 post-initial candidate flow를 확인했고, standard runner의 n_init 계산도 다시 검증했다.
+현재 문서/설정/실행 script를 보강했고, 아직 SPICE 실행 결과는 없다.
 
-EXP-003은 budget 60을 사용한다.
+Research Question:
 
-```text
-n_params = 7
-budget = 60
-→ standard n_init_for() = 20
-```
+> 처음 20개 TT 설계안이 모두 Infeasible일 때, ATLAS가 제한된 추가 adaptive evaluation으로 **같은 설계에서 6개 spec을 동시에 만족하는 지점**을 찾을 수 있는가?
 
-따라서 EXP-002의 D000-D019 definition과 맞춘 상태에서 D020 이후 adaptive trajectory를 관찰할 수 있다.
+설정:
 
-실험 설정:
+- Circuit: GF180 two-stage op-amp / TT 3.3 V, 27 °C
+- parameter dimension: 7
+- budget 60 / n_init 20 / 최대 40 adaptive
+- seed 42 / GP surrogate / first feasible early stop
+- \`sw_stat_global = 0\`, \`sw_stat_mismatch = 0\`
+- D000–D019 **TT 재실행** 후 D020부터 adaptive (EXP-002 data warm-start가 아님)
+- output: \`trajectory.csv\`, \`run_summary.json\`, ATLAS native logs
 
-- TT-only
-- budget 60
-- seed 42
-- n_init 20
-- GP surrogate 고정
-- first feasible에서 early stop
-- full parameter + metric trajectory 보존
+관찰할 값: feasible 여부만이 아니라 iteration별 per-spec margin, worst_margin, total_violation, 7개 parameter trajectory와 ATLAS 내부 진단값.
 
-### Step 2 — TT feasible / near-feasible search 설계
+**Why:** feasibility 여부만 보면 왜 성공 또는 실패했는지 알 수 없다. 예컨대 PM은 개선되는데 UGBW가 떨어지는 trade-off를 확인해야 다음 탐색 전략을 정할 수 있다.
 
-임의의 100-point PVT sweep을 바로 시작하지 않는다.
+상세 목적/가설/결과 해석/후속 방향은 \`experiments/EXP-003_tt_adaptive_feasible_discovery/README.md\`를 따른다.
 
-Robust feasible design은 반드시 TT에서도 feasible해야 하므로 먼저 TT에서 feasible 또는 feasible boundary에 가까운 candidate를 찾는다.
+### Step 2 — TT Multi-Island Discovery (후속, 미실행)
 
-```text
-initial 20 points
-→ ATLAS adaptive TT search
-→ TT feasible / near-feasible candidates
-→ selected candidates만 17-corner PVT
-```
+EXP-003에서 **first feasible point를 찾더라도 그 점 하나가 Feasible Island 전체는 아니다.**
 
-이 단계에서 near-feasible의 정량 기준과 저장할 dataset 구조를 먼저 정의한 뒤 실행한다.
+서로 다른 위치에 **여러 disconnected TT feasible region**이 존재할 가능성을 확인하기 위해:
 
-### Step 3 — Selected Candidate PVT Evaluation
+- first feasible 주변 boundary refinement
+- 먼 영역의 global sampling / 다른 seed / 다른 시작점
+- 필요하면 early stop이 없는 별도 continuation run
+- normalized 7D distance와 이웃 정의
+- Mapper가 예측한 component와 실제 measured feasible set 비교
+- 2D projection 상 분리와 실제 7D disconnected component를 구분
 
-TT에서 찾은 모든 candidate를 무조건 PVT 평가하지 않는다.
+진짜 disconnected island라고 판단하려면 샘플이 비어 있다는 사실만으로 충분하지 않다. 두 region 사이의 연결 경로를 추가 확인해야 할 수 있다.
 
-TT feasible 또는 boundary 근처 point를 선정해 17 corners에서 다음을 비교한다.
+### Step 3 — Same-Point 17-Corner PVT Comparison (후속, 미실행)
 
-- corner-wise feasibility
-- spec margin
-- metric별 worst corner
-- robust feasibility
+TT에서 발견한 **복수 region 후보 A/B/...**와 boundary에서 여러 대표 design points를 선택한다.
 
-### Step 4 — Feasible-Island Analysis 확대 판단
+이 **동일한 7개 파라미터 조합**을 TT 포함 17 PVT corners에서 시뮬레이션하고 \`design_points.csv\` + \`corner_metrics.csv\`로 기록한다.
 
-corner별 feasible point가 충분히 확보된 이후에만 50/100-point dataset 확대와 feasible-island topology / persistence 분석을 시작한다.
+Corner마다 parameter를 달리 최적화하는 것이 아니라 동일 좌표의 feasibility 변화를 비교해야 island의 이동·축소·소멸을 논할 수 있다.
 
-여전히 feasible point가 거의 없다면 sample 수를 늘리기 전에 parameter range, spec trade-off, ATLAS candidate trajectory를 먼저 분석한다.
+### Step 4 — Persistence / Baseline Comparison (후속, 미실행)
+
+Corner별 island matching 및 persistence 정의를 설계한 뒤:
+
+- worst-case vector baseline
+- corner-wise island-information-aware candidate selection
+
+을 동일 spec/PVT/simulation-budget 조건에서 비교한다.
+
+**중요:** metric-wise worst-case aggregation은 corner identity/geometry를 잃지만, 17개 corner 모두를 정확히 평가했다면 **최종 robust feasibility의 참/거짓 자체를 잃는 것은 아니다.** 우리 가설은 추가 구조 정보가 **탐색 효율**을 개선한다는 것이다.
 
 ## Working Principle
 
