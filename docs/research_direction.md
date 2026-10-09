@@ -40,7 +40,7 @@ YAML init_params인 D000을 17 corners에서 평가했다.
 
 ### EXP-002 — ATLAS Initial 20-Point PVT Pilot
 
-ATLAS가 optimization 시작 시 사용하는 initial 20 points를 모두 17 corners에서 평가했다.
+TopoBO optimizer의 기본값 `n_init=20`으로 생성한 initial 20 points를 모두 17 corners에서 평가했다. 큰 budget의 standard runner에서는 `n_init=21`일 수 있으므로 두 경우를 구분한다.
 
 ```text
 20 designs × 17 corners = 340 evaluations
@@ -85,29 +85,64 @@ sample 수만 늘리면:
 
 현재 bottleneck은 sample 개수 자체보다 **feasible / near-feasible region discovery**다.
 
-## 6. Next Direction
+## 6. Current Research Sequence (2026-10-09 update)
 
-Robust feasible design은 반드시 TT에서도 feasible해야 한다.
+현재 문제를 다음 **서로 다른 연구 질문**으로 나누어 접근한다.
 
-따라서 다음 연구 흐름은 다음과 같이 잡는다.
+### Phase A — TT Feasible Discovery: EXP-003 (실행 전)
 
-```text
-ATLAS initial 20 points
-→ post-initial adaptive candidate selection 이해
-→ TT feasible / near-feasible search
-→ selected candidates 17-corner PVT evaluation
-→ corner-wise feasible-set comparison
-→ worst-case compression 영향 분석
-→ feasible-island / persistence 분석 확대 판단
-```
+최초 TT feasible 설계점 탐색 및 adaptive search 진단.
 
-다음 단계에서 먼저 정해야 할 것은:
+- budget=60 (초기 20 + 추가 최대 40 **실제 TT 설계점 평가**)
+- 7 parameters, seed=42, surrogate=GP, first feasible 시 early stop
+- initial 20개 TT 결과를 다시 시뮬레이션하며 기존 EXP-001/002와 대조
+- metric별 normalized margin, worst_margin, total_violation, feasibility trajectory 관찰
 
-1. D020 이후 ATLAS candidate가 실제로 생성되는 코드 흐름
-2. near-feasible의 정량 정의
-3. TT adaptive search budget / stopping condition
-4. 어떤 TT candidate를 PVT로 넘길지 selection rule
-5. adaptive search 과정에서 보존할 dataset 구조
+**왜 TT 먼저?** 17-corner robust-feasible 점이라면 TT에서도 반드시 feasible해야 한다. 초기 20개가 모두 TT-infeasible하므로 TT의 joint feasible/near-boundary region을 먼저 찾는 것이 이후 corner 평가 대상을 좁히는 데 도움이 된다.
+
+**한계:** first feasible은 단지 한 점이다. 해당 region의 경계·연결성이나 다른 island가 없다는 사실을 보장하지 않는다.
+
+### Phase B — TT Multi-Island Discovery (후속, 미실행)
+
+**추가로 제기한 핵심 위험:** feasible 영역은 TT에서도 하나가 아니라 **서로 떨어진 여러 island A/B/...**로 존재할 수 있다.
+
+한 feasible point 근처만 탐색하면 멀리 있는 island를 놓칠 수 있다.
+
+따라서 EXP-003의 first feasible 발견 뒤 **별도의 탐색 단계**에서 다음을 수행한다.
+
+1. 발견한 TT feasible point의 local boundary와 주변 margin을 탐색
+2. 다른 seed / global sampling / 독립 초기 영역 등을 통해 먼 영역도 탐색
+3. 필요 시 early stop 없이 추가 탐색을 진행하는 별도 run 설계
+4. design parameter 7차원을 normalized coordinate로 나타내고 distance/adjacency 기준 정의
+5. 측정된 feasible points와 Mapper의 predicted components를 구분
+6. 2D 투영에서 분리되어 보여도 실제 7D에서 이어질 수 있으므로 **연결 경로 검증** 고려
+
+결과는 "몇 개 island가 확정됐다"라고 성급히 주장하지 않고, region 후보와 연결성에 대한 근거 강도를 기록한다.
+
+### Phase C — Same-Point Cross-PVT Feasible Map (후속, 미실행)
+
+서로 다른 TT region 후보 A/B/...에서 고른 **공통 x 집합**을 TT 포함 17개 corner 모두에 투입한다.
+
+- 동일 design x에서 corner별 metric 및 feasibility
+- 각 region의 local boundary 변화
+- corner별 feasible set의 이동·축소·소멸·분리 가능성
+- 17개 corner 모두 만족하는 robust-feasible 교집합
+
+**왜 같은 x를 사용하나?** Corner마다 다른 x로 최적화하면 영역이 PVT 조건에 의해 어떻게 달라졌는지 직접 비교할 수 없다.
+
+### Phase D — Island Matching, Persistence, and Improvement Test (후속, 미실행)
+
+Corner별 feasible region을 어떻게 대응시킬지(matching)와 지속성(persistence)을 어떻게 정의할지 설계한다.
+
+최종 검증 질문:
+
+> Corner-wise island 정보를 이용하는 후보 선택 방법이 기존 metric-wise worst-case baseline보다 **같은 simulation cost에서** robust feasible design을 더 효과적으로 찾는가?
+
+비교 지표 후보: robust feasibility discovery success, first robust design까지의 evaluation cost, 지정 budget 내 robust design 수, region coverage.
+
+**중요한 원칙:** 각 corner를 정확히 평가해 metric별 최악값을 취하는 것은 **최종 robust feasibility 판정의 참/거짓**을 바꾸지 않는다. 잃는 것은 corner별 metric identity와 geometry/연결 정보다. 따라서 novelty는 더 정확한 pass/fail 판정이 아니라 **그 정보가 탐색에 어떤 이득을 주는지**에서 검증해야 한다.
+
+현재 Phase A만 EXP-003으로 지정했다. 나머지의 실험 번호와 budget은 결과를 본 뒤 결정한다.
 
 ## 7. Working Hypothesis
 
