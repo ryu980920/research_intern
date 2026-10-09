@@ -152,6 +152,22 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/trace_settling_poste
 
 **결과 판단 전제:** GP B의 variance floor 여부가 확인돼도, 실제 수치 공분산이 작아지는 근본 원인과 관측 noise를 포함한 predictive distribution의 교정 여부는 별도의 다음 질문으로 남는다.
 
+### Stage 3B-2 실행 관찰 (코드 구현 + WSL 실행 완료)
+
+고정된 ATLAS의 동일 34/19과 seed 42로 B(s)/C(µs) 각 fit 1회, 신규 SPICE 0회. `gpytorch=1.15.2`, `torch=2.14.1+cu130`.
+
+| 구분 | GP B(s) | GP C(µs) |
+| --- | ---: | ---: |
+| raw variance가 min_variance 미만 | 18/19 | 0/19 |
+| raw variance 음수 | 0/19 | 0/19 |
+| reported var == max(raw, floor) | True | True |
+| variance warning | 1 | 0 |
+| Stage 3B 예측 mean/std 재현 최대 오차 | 0/0 µs | 0/0 µs |
+
+**Direct cause confirmed:** B의 std=10µs 반복은 `1e-10 s²` 하한 보정의 결과다. 실제 음수 분산은 관찰되지 않았다. 원시 covariance가 작게 계산된 근본 원인은 후속 연구 질문으로 남는다. 이는 C의 uncertainty calibration 검증과 별개다.
+
+**File status:** 원본 `stage3b2_variance_trace.csv` / `stage3b2_variance_trace_summary.json`은 WSL 생성 로그만 확인됨; 이번 시점에는 GitHub에 원본 미보존. 향후 방향은 PM 60° 경계 false pass/false reject 및 UGBW 동시 충족 판정으로 전환.
+
 ## 4. Candidate improvements — Stage 3C 이후 (미실행)
 
 A. **Baseline:** 현재 GP 그대로.
