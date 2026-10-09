@@ -59,6 +59,8 @@ EXP-XXX_name/
 | [EXP-004](EXP-004_warm_start_smoke_test/README.md) | **Completed** | EXP-003의 TT 60개 관측치로 GP Warm Start 기능 검증 | **60개 replay / 신규 D060 1개 평가** 성공; D060 5/6 pass(PM 38.11°), GP PM 예측 약 60° → EXP-005에서 예측 성능 검증 병행 |
 | [EXP-005](EXP-005_gp_surrogate_reliability/README.md) | **Paused (Stage 1/2/2b/3A/3B/3B-2 실행 완료)** | GP 예측 오류를 원본 데이터·추출기 fallback·모델 수치 불안정성으로 분해 | 신규 SPICE **0회**; 60개 audit → GP 40/20 → fallback 원인 확인 → A/B 비교(PM·Settling 개선, UGBW 악화) → **Stage 3B B(s) std=10µs 18/19·경고 1건 vs C(µs) 0/19·경고 0건**. 추가 분석에서 근사 posterior 구간 포함률 B 18/19, C 13/19. Stage 3B CSV/JSON GitHub archive 보존 완료. Stage 3B-2에서 GPyTorch 분산 하한 보정 원인 확인. **논문 재현 조건 감사 우선** |
 
+| [EXP-006](EXP-006_atlas_release_baseline_reproduction/README.md) | **Prepared (not executed)** | 공개 ATLAS 논문 기준선과 EXP-003 파일럿 조건 차이를 분리하고 동일 회로에서 500회 예산 1-run 재현을 준비 | 7D GF180 TSA TT, seed42, initial21, GP 고정, early stop. 읽기 전용 preflight 및 안전한 별도 원본 기록 코드 준비 완료. **신규 SPICE 0회; --execute 승인 전 실행 금지** |
+
 ### 현재 연구 흐름
 
 ```text
