@@ -206,21 +206,22 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 - **기록:** [EXP-004 README](experiments/EXP-004_warm_start_smoke_test/README.md), [설계점](experiments/EXP-004_warm_start_smoke_test/data/design_points.csv), [실측 성능](experiments/EXP-004_warm_start_smoke_test/data/corner_metrics.csv), [GP 예측/관측](experiments/EXP-004_warm_start_smoke_test/raw/prediction_D060.json).
 - **EXP-005:** 신규 평가 예산을 늘릴 때 모든 신규 후보의 사전 GP 평균/표준편차와 실제 SPICE 성능을 함께 보존하고 모델 예측 품질을 점검한다.
 
-## EXP-005 GP Surrogate Reliability (Prepared, 2026-10-10)
+## EXP-005 GP Surrogate Reliability (Running, 2026-10-10)
 
 - **RQ:** 기존 GP 예측 오차가 data quality·극단값·모델링/fit 문제 중 어디와 연결되는가? 관측값 부족이 실제 병목인가?
-- **Stage 1 (WSL 실행 완료):** EXP-003 `raw/trajectory.csv` 60개 점검. **점검 대상 7개**, PM -180° 근처 2개, UGBW ≤1 Hz 2개, Settling >600 µs 7개(플래그 중복 가능); **중복 설계점 0개**. 이상값의 실제 원인은 **아직 미확인**. `--save` 기록은 별도 실행 전.
-- **Stage 2 (WSL 실행 완료):** 실제 ATLAS GP를 D000–D039(40개) 학습하고 D040–D059(20개×6 metric=120예측) 검증. PM MAE 28.73°, Settling MAE 53.24 ms(아래의 데이터 단위 혼합 때문에 물리적 시간 오차로 해석 불가), 20개 중 Settling GP 음수 평균 8개. Fit 8.51s, 캡처된 MLL fallback 메시지 없음. **신규 SPICE 0회**. 예측 CSV는 사용자가 채팅에 첨부했고, local Git commit은 아직 미확인.
-- **Stage 2b (WSL 완료, 기록 파일 생성):** [diagnose_metric_semantics.py](experiments/EXP-005_gp_surrogate_reliability/scripts/diagnose_metric_semantics.py) 실행됨. 고정 ATLAS `CircuitClass.py`는 unity-crossing 실패 시 UGBW=AC 첫 주파수(1 Hz), PM=-180° 반환; settling 실패 시 **무차원 `d_settle`을 `settlingTime` 필드에 저장**. GF180 TT transient는 401 µs 길이인데 7개(D013/014/015/016/017/023/047)의 `t_settle`은 이를 초과(학습 6/검증 1), AC paired sentinel은 D014/D047. **Stage 3은 단위가 혼합된 레이블을 분리한 후** 원본 GP vs validity-aware raw/log-GP를 비교.
-- **Stage 3A (코드 준비, WSL 실행 대기):** [compare_validity_aware_gp.py](experiments/EXP-005_gp_surrogate_reliability/scripts/compare_validity_aware_gp.py). 기존 GP(A)와 같은 ATLAS GP에서 metric별 **확정 대체값만 학습 제외**한 GP(B)를 비교한다. PM/UGBW는 A 40개 vs B 39개, Settling은 A 40개 vs B 34개. 오차는 D047을 제외한 동일 검증 **19개**에서 paired 비교. Gain/Ibias/Swing GP는 변경하지 않음. **추가 SPICE 0회**. 로컬 baseline/semantics CSV·JSON SHA 확인 후 수행.
+- **Stage 1 (WSL 완료):** EXP-003 `raw/trajectory.csv` 60개 점검, 중복 0개, 조사 대상 7개(PM -180° 부근 2, UGBW 1 Hz 2, Settling >600 µs 7). 이때는 원인 미확인이었으며 Stage 2b에서 추출기 의미를 조사했다. `--save` 실행은 미확인.
+- **Stage 2 (WSL 실행 완료):** 실제 ATLAS GP를 D000–D039(40개) 학습하고 D040–D059(20개×6 metric=120예측) 검증. PM MAE 28.73°, Settling MAE 53.24 ms(아래의 데이터 단위 혼합 때문에 물리적 시간 오차로 해석 불가), 20개 중 Settling GP 음수 평균 8개. Fit 8.51s, 캡처된 MLL fallback 메시지 없음. **신규 SPICE 0회**. Stage 2 예측 120행 CSV는 GitHub `data/analysis/archive/`에 byte-preserved 업로드 완료.
+- **Stage 2b (WSL 완료, 기록 파일 생성):** [diagnose_metric_semantics.py](experiments/EXP-005_gp_surrogate_reliability/scripts/diagnose_metric_semantics.py) 실행됨. 고정 ATLAS `CircuitClass.py`는 unity-crossing 실패 시 UGBW=AC 첫 주파수(1 Hz), PM=-180° 반환; settling 실패 시 **무차원 `d_settle`을 `settlingTime` 필드에 저장**. GF180 TT transient는 401 µs 길이인데 7개(D013/014/015/016/017/023/047)의 `t_settle`은 이를 초과(학습 6/검증 1), AC paired sentinel은 D014/D047. 이 결과를 바탕으로 **확정 대체값 제외 GP B의 A/B 비교**를 진행.
+- **Stage 3A (WSL 완료):** [compare_validity_aware_gp.py](experiments/EXP-005_gp_surrogate_reliability/scripts/compare_validity_aware_gp.py)로 GP A(기존 40개 학습) vs GP B(확정 대체값만 제외: PM/UGBW 39개, Settling 34개)를 동일 **19개 홀드아웃**에서 비교. **MAE:** PM 16.8995→14.9638°(개선), UGBW 7.1082→9.8395 MHz(악화), Settling 저장값 8005.33→7.9326 µs 상당(대폭 개선, 유효 시간 MAE로 인증 불가). GP B fitting 3회/5.62 s, 새 SPICE 0회. Settling B에 **GPyTorch 음수분산 보정 경고**가 있었고 표준편차 **18/19가 10 µs**로 동일; 불확실성 신뢰성 미확인. [분석 CSV·JSON](experiments/EXP-005_gp_surrogate_reliability/data/analysis/archive/README.md) 보존.
 - **중요:** D040–D059는 adaptive 탐색으로 선택된 데이터이며 iid 일반화 성능을 보장하지 않는다. 기존 Settling MAE는 시간과 무차원 fallback이 섞인 label에 대한 수학적 오차이고, 남은 소형 settling 값도 waveform 없이는 유효성 미확인이다. 이 확인만으로 GP 품질 전체의 원인을 단정하지 않는다.
+- **Stage 3B (Planned, 미실행):** 동일 34/19 및 같은 GP를 사용해 Settling 학습 출력 단위를 s↔µs로 바꿀 때 분산 경고/하한 문제가 바뀌는지 진단한다. 결과·개선 주장 아직 없음.
 - **Budget:** 현재 EXP-005에서 **추가 ngspice 설계 평가 0개**. 이후 필요성이 입증될 때 EXP-006에서 별도로 결정.
-- **문서:** [EXP-005 README](experiments/EXP-005_gp_surrogate_reliability/README.md), [실험 설정](experiments/EXP-005_gp_surrogate_reliability/config/run_config.md).
+- **문서:** [EXP-005 README](experiments/EXP-005_gp_surrogate_reliability/README.md), [실험 설정](experiments/EXP-005_gp_surrogate_reliability/config/run_config.md), [2026-10-10 순서별 연구일지](logs/2026-10/2026-10-10.md).
 
 ## Current Questions
 
 1. D050은 왜 PM 54.16°에서 목표 60°를 넘지 못하는가? **PM–UGBW trade-off**는 compensation capacitor `cc` 및 width 변화로 해결될 수 있는가?
-2. 일부 D014 등의 PM=-180°/UGBW=1 Hz/특이 settling 결과는 실제 동작인지 metric extractor의 fallback인가?
+2. D014/D047의 UGBW 1 Hz·PM -180°는 extractor의 **교차점 미발견 대체값**임을 확인했다. 긴 settling 값 7개도 정상 측정된 실제 시간은 아니다. **남은 수치의 측정 유효성**과 실패 플래그 기록 방법을 어떻게 확인할까?
 3. 현재 GP fit은 반복마다 실행됐다. 그러나 **GP MLL fit 성공/예측 정확도**를 어떻게 독립적으로 검증할 것인가?
 4. 다른 seed, 넓은 전역 탐색과 경계 국소 탐색으로 실제 TT feasible point를 확보할 수 있는가?
 5. TT feasible 표본을 얻은 뒤에도 서로 분리된 다른 island가 존재하는가? 7D에서 연결성을 어떻게 검증할 것인가?
