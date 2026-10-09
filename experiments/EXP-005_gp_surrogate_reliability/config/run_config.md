@@ -95,7 +95,21 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/compare_validity_awa
 - Stage 2 및 Stage 3A 사용자 업로드 결과를 **`data/analysis/archive/`**에 보존(원본 WSL 분석 경로와 `git pull` 충돌 방지), 원본 raw 데이터는 EXP-003에 유지. Provenance: [archive README](../data/analysis/archive/README.md).
 - 시간순 연구 기록: [2026-10-10 log](../../../logs/2026-10/2026-10-10.md).
 
-## 4b. Numerical stability — Stage 3B (계획, 미실행)
+## 4b. Numerical stability — Stage 3B (코드 구현 완료, WSL 실행 대기)
+**Prepared executable:** `scripts/test_settling_gp_unit_stability.py`
+
+- 두 모델 B(s) / C(µs) 각각 GP fit 1회씩 수행. 동일 seed=42, X_train=34, X_holdout=19, 같은 `t_settle_max` mask와 Matérn ARD kernel 사용. Stage 3A 저장된 B를 참조해 rerun consistency 점검.
+- C의 posterior mean **및 std 모두 1e6으로 나누어** B와 비교(공통 물리적 단위: seconds, 표시 µs).
+- 수치 안정성 진단: `NumericalWarning` 포함 경고 목록, 예측 19개의 std==10µs 개수, MAE/RMSE, 음수 예측, posterior interval hit, GP fit fallback, Stage 3A B 재현 오차.
+- `gp_model.py` 변경하지 않으며 기존 파일을 덮어쓰지 않음. 결과는 신규 `stage3b_settling_unit_comparison.csv`와 `stage3b_settling_unit_summary.json`에 생성.
+- 결과 미실행. 개선 여부·분산 보정 원인 단정 금지.
+
+```bash
+cd ~/research_intern
+git pull --ff-only
+python experiments/EXP-005_gp_surrogate_reliability/scripts/test_settling_gp_unit_stability.py
+```
+
 
 **RQ:** B에서 음수 분산 경고/10 µs std 반복이 초(s) 단위의 작은 타깃 수치 또는 분산 하한 처리에 영향을 받은 것인가?
 
