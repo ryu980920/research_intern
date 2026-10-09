@@ -17,7 +17,7 @@ _Last updated: 2026-10-10_
 - **EXP-003:** TT-only에서 D000~D019 재평가 + GP adaptive D020~D059 = **60 TT evaluations, feasible 0**. 최선의 near-feasible design은 D050 (PM=54.16°, UGBW=20.33 MHz, PASS 5/6, worst_margin=-0.0973).
 - 첨부된 ATLAS `iterations.jsonl` 60행을 검증했다. GP fit_time이 adaptive 40회 모두 기록됐으나 **각 GP MLL fit의 성공과 예측 정확도는 아직 미검증**이다.
 
-**다음 연구 단계:** [EXP-005](experiments/EXP-005_gp_surrogate_reliability/README.md)는 **Running**이다. EXP-004는 Warm Start 60개 재사용 + 신규 D060 TT 평가 **1회**로 기능 검증을 완료했으나, PM 예측 평균 59.995°(실측 38.107°), 비물리적 Settling 예측 평균 등 모델 신뢰성 문제가 드러났다. **EXP-005에서는 신규 SPICE 0회**로 EXP-003의 60개 TT 데이터를 점검하고, 학습 D000–D039/검증 D040–D059 분할에서 GP 오차·불확실성·fit fallback을 분석한 후 로그 타깃/국소 모델 등의 개선을 비교한다. 데이터가 실제로 더 필요하다는 근거가 생기면 **EXP-006**에서 신규 TT 평가 예산을 정한다. 아직 TT feasible 및 feasible island topology는 확인되지 않았다.
+**현재 우선 과제:** [ATLAS ICCAD 2026 재현 조건 감사](docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md). [EXP-005](experiments/EXP-005_gp_surrogate_reliability/README.md)는 **Stage 3B-2 후 일시 보류**했다. 기존 Stage 1–3B-2 기록과 결과는 보존한다. 새 GP 수정·PM 집중 분석·신규 SPICE를 시작하기 전에, 논문에서 사용한 TSA/500 평가/초기 21개/10회 반복과 우리의 EXP-003/60 평가/초기 20개/1회 차이를 확인한다. 현재 논문 보고 SR=10/10, FSD=176±101과 우리 0/60은 조건이 달라 **재현 성공 또는 실패로 직접 비교할 수 없다**. 논문의 'random specification targets'와 현재 공개 YAML의 고정 target 차이 및 논문 이후 수정된 코드 여부도 확인 필요. 아직 TT feasible 및 실제 feasible-island topology는 발견되지 않았다.
 
 장기 질문은 계속 같다.
 
@@ -206,7 +206,14 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 - **기록:** [EXP-004 README](experiments/EXP-004_warm_start_smoke_test/README.md), [설계점](experiments/EXP-004_warm_start_smoke_test/data/design_points.csv), [실측 성능](experiments/EXP-004_warm_start_smoke_test/data/corner_metrics.csv), [GP 예측/관측](experiments/EXP-004_warm_start_smoke_test/raw/prediction_D060.json).
 - **EXP-005:** 신규 평가 예산을 늘릴 때 모든 신규 후보의 사전 GP 평균/표준편차와 실제 SPICE 성능을 함께 보존하고 모델 예측 품질을 점검한다.
 
-## EXP-005 GP Surrogate Reliability (Running, 2026-10-10)
+## Paper Reproduction Audit (Priority, 2026-10-10)
+
+- **자료:** [ATLAS 논문 §4.1–4.2 / Tables 1–3 및 EXP-003 설정 비교](docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md).
+- **현재 확인한 차이:** 논문 TSA=GF180 7D 6 specs, 500 evaluation/run × 10 runs, initial 3d=21; EXP-003=동일 회로·스펙이나 60 budget × 1 seed, initial 20. 논문 TSA 결과 10/10, 176±101 evaluations; EXP-003 0/60을 즉시 실패로 판정할 수 없음.
+- **미해결:** 논문 'random spec targets' 문구와 현재 공개 YAML `low==high`의 차이, 논문 실험 이후 수정된 ATLAS 코드, GF180 PDK model hashes 및 통계 스위치 등 세부 환경.
+- **다음:** WSL에서 ATLAS SHA/작업트리, ngspice executable/version, PDK 모델 위치·해시·MC 스위치, YAML targets 확인 → 공개 코드 standard run을 별도 experiment로 할지 결정. **현재 신규 시뮬레이션 0회, 정식 논문 재현 실행 미실행.**
+
+## EXP-005 GP Surrogate Reliability (Paused after Stage 3B-2, 2026-10-10)
 
 - **RQ:** 기존 GP 예측 오차가 data quality·극단값·모델링/fit 문제 중 어디와 연결되는가? 관측값 부족이 실제 병목인가?
 - **Stage 1 (WSL 완료):** EXP-003 `raw/trajectory.csv` 60개 점검, 중복 0개, 조사 대상 7개(PM -180° 부근 2, UGBW 1 Hz 2, Settling >600 µs 7). 이때는 원인 미확인이었으며 Stage 2b에서 추출기 의미를 조사했다. `--save` 실행은 미확인.
