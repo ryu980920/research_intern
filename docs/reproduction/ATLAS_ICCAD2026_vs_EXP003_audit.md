@@ -113,3 +113,74 @@ python docs/reproduction/inspect_atlas_environment.py
 - EXP-005는 **Paused after Stage 3B-2**로 명시한다. 측정 실패 데이터/분산 하한의 직접 관측값 및 결과 파일은 삭제하지 않는다.
 - 후속 재현을 실제로 시작할 때 별도 `experiments/EXP-xxx_atlas_baseline_reproduction/` 구성: 목적 → config → run scripts → raw → processed → figures → interpretation. 500회 실행 전 input/code/config/model hashes와 출력 경로를 고정.
 - **현재 감사의 결론:** 환경 및 소스 설정의 미해결 차이를 분리했을 뿐, 논문의 수치 재현 여부는 아직 결정하지 않았다.
+
+## 7. WSL preflight 실측 결과 — 2026-10-10
+
+사용자가 `python docs/reproduction/inspect_atlas_environment.py` 실행 로그를 제공했다. 이 감사 단계에서 **새 SPICE 평가 0회**. 아래는 사용자 출력에서 확인된 값이며, JSON 결과 파일이 실제 업로드된 것은 아니므로 출처는 대화 속 원본 터미널 기록이다.
+
+### 7.1. 실행 코드 및 시뮬레이터
+
+| 항목 | 실제 결과 | 해석 |
+| --- | --- | --- |
+| `ATLAS_ROOT` | `/home/ryu98/atlas` | 확인 |
+| `git rev-parse HEAD` | `dd23c5ba7beb598909be593e4a84c81dab92cc69` | 고정 ATLAS 코드 버전과 일치 |
+| 현재 PATH ngspice 실행파일 | `/usr/local/bin/ngspice` | 현재 wrapper가 기본적으로 찾는 바이너리 |
+| 해당 ngspice version | `44.2`, KLU Direct Linear Solver | 공개 README에서 테스트한 메이저/마이너 버전과 일치 |
+| 별도 자체빌드 | `/home/ryu98/ngspice-44.2-noomp/src/ngspice` | 역시 44.2이나 **별개의 빌드** (빌드시간 차이 있음); byte identity 검증 아님 |
+| `numpy` | `2.2.6` | 현재 Python package |
+| `torch` | `2.14.1` | 현재 Python package |
+| `botorch` | `0.16.1` | 현재 Python package |
+| `gpytorch` | `1.15.2` | 현재 Python package |
+| `scipy` | `1.15.3` | 현재 Python package |
+| `PyYAML` | `6.0.3` | 현재 Python package |
+
+**중요한 제한:** 이 출력은 **점검 시점** PATH의 44.2를 확인한 것이다. 과거 EXP-003 실행 순간에 같은 실행파일이 사용되었다는 확정적 증거는 아니다. 실행 당시 stdout/로그/해시 확인이 필요하며, 현재 버전이 같다는 사실을 역사적 실행 증명으로 바꾸지 않는다.
+
+**Git working tree 경고 — 심각한 소스 수정과 구분:**
+
+```text
+?? eval_engines/ngspice/ngspice_inputs/netlist/.spiceinit
+?? eval_engines/ngspice/ngspice_inputs/netlist/ac.csv
+?? eval_engines/ngspice/ngspice_inputs/netlist/dc.csv
+?? eval_engines/ngspice/ngspice_inputs/netlist/dc_sweep.csv
+?? eval_engines/ngspice/ngspice_inputs/netlist/tran.csv
+```
+
+`git status --porcelain` 결과는 **전부 `??` (=untracked)**로, 버전 관리되는 ATLAS 기존 소스 파일의 수정은 보고되지 않았다. 따라서 'ATLAS tracked source is modified'라고 기록하지 않는다. CSV는 기존 smoke output일 수 있지만 origin은 별도 확인 필요. `.spiceinit`은 시뮬레이터 설정 내용일 수 있으므로 **삭제/변경하지 않고 먼저 읽는다**. 현재 wrapper가 실시간 `PATH`를 참조하는 사실과 전역/사용자 `.spiceinit` 효과도 필요시 분리 검증한다.
+
+### 7.2. GF180 PDK / netlist / spec 확인
+
+| 경로/설정 | 점검 결과 |
+| --- | --- |
+| `PDK_ROOT` | `/home/ryu98/pdks` |
+| `gf180/ngspice/design.ngspice` SHA256 | `b55dcc56441acbe9946d55368a2702310f5392c49f7ece7ee56bce0600aca56c` |
+| `gf180/ngspice/sm141064.ngspice` SHA256 | `73fc67d38747d95ce03f3c2ba5f0a25c98f56a293363a9df4c971a3a28a3dcda` |
+| `gf180/ngspice/smbb000149.ngspice` SHA256 | `3b0995ba269b6cbc468f34fe977c4d21b0faa2935e02f4b2a5d24f58ea66affe` |
+| 통계 스위치 | `sw_stat_global=0`, `sw_stat_mismatch=0` |
+| TSA YAML SHA256 | `ca590d5c77e036c59e13f5b99284140075c5a187be9780ef0dee5d90d474bb04` |
+| TSA TT netlist SHA256 | `c62527e6d68d1611304a79dd8546b72d3caeeb64f461b5f66c7bd75f103fa789` |
+| Runner SHA256 | `ae4704fed9f880d56288aeabb271288d36e7547792b8abb5ff5e00b6c08065e3` |
+| Evaluator SHA256 | `127670ff31150678c50ab15ad2fe9db96e7a90f0cf74a50f0b5e59efeedeb8ae` |
+| SPICE wrapper SHA256 | `2b574798a2ad13a86d5f0fbd07545cb9d45f4ade432156c4a52fd6d34c2df8fa` |
+
+스크립트는 `gf180/ngspice/`와 `gf180/models/ngspice/` 아래 각 파일이 **현재 같은 SHA256**임을 확인했다. 이는 **로컬 두 경로 간 내용 동일성**에 관한 증거이지, **논문 실험 당시 PDK 파일과 완전히 동일하다**는 증거는 아니다.
+
+YAML 파싱 결과: 7 parameters, 6 specs, 17 netlists(TT + 다른 16개), `init_params` 존재, `all_target_ranges_fixed=true`, `n_init(budget60)=20`, `n_init(budget500)=21`. 목표 수치와 파라미터 bounds는 앞의 비교표와 일치.
+
+### 7.3. 판정 및 다음 분기
+
+**Observation:** 현 환경에는 읽을 수 있는 GF180 원본 모델, nominal statistical switches OFF, 올바른 고정 ATLAS commit과 `ngspice-44.2`가 있다. **`warnings=1`은 untracked 파일 5개 때문**이다. 코드 수정/환경 오류/MC 활성화로 확인된 경고는 없다.
+
+**Interpretation:** 현재 설치환경은 **공개 ATLAS baseline을 실행할 준비가 상당 부분 되었음**을 뜻한다. 그러나 종전 EXP-003 실행환경과 **완전 동일**하거나 논문 당시 PDK/코드/target과 **동일**하다고 증명한 것은 아니다.
+
+**Research implication:** 논문 대비 baseline 실험 시 주요 환경 설정을 해시·버전으로 고정할 수 있게 됐다. 이 상태에서 곧바로 500회 실행을 시작하지 말고 **`.spiceinit` 내용 확인 / 독립 출력 경로 / 1회 benchmark run의 예산과 보존 정책**을 확정한다.
+
+**Next (읽기 전용):**
+
+```bash
+cd ~/atlas
+git status --short
+cat eval_engines/ngspice/ngspice_inputs/netlist/.spiceinit
+```
+
+이후 `500 evaluation` 제한 / `seed42` / `n_init21` / 별도 재현 실험 폴더 / auto or gp surrogate 정책을 결정하고, 첫 benchmark 실행 이전에 WSL baseline 환경 snapshot을 새 파일로 저장한다. **현재 새 시뮬레이션은 0회**.
