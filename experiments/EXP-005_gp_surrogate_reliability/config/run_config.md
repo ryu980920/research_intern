@@ -37,13 +37,16 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/audit_tt_dataset.py
 
 기록이 필요하면 결과 확인 후 `--save`를 붙여 `data/analysis/dataset_audit.json`, `anomaly_flags.csv`를 생성한다. 기존 파일은 덮어쓰지 않는다. JSON에 원본 SHA256을 남긴다.
 
-## 3. GP baseline — Stage 2 (예정, 아직 구현 전)
+## 3. GP baseline — Stage 2 (구현됨, WSL 실행 대기)
 
+- **실행 스크립트:** `scripts/evaluate_gp_baseline.py`. 신규 SPICE 호출 없이 실제 ATLAS `GPSurrogate` import, pinned SHA 및 YAML에서 bounds/spec 확인.
 - **시간 순서 분할:** train = D000~D039 (40개), holdout = D040~D059 (20개).
 - Train 이외 20개 성능을 GP 학습에 넣지 않고 예측 평균·표준편차와 실제 TT 성능을 비교한다.
 - Metric마다 MAE, RMSE, empirical interval hit rate (예: predicted mean ± 1.96 × predicted std), normalized residual `(observed - mean)/std`를 계산한다.
 - **GP MLL fit fallback** 여부를 확인·기록해 최적화가 완전히 학습됐다는 근거 없이 주장하지 않는다.
 - GP 예측은 잠재 함수 posterior를 의미할 수 있으므로 95% interval hit rate를 모집단 신뢰수준으로 단정하지 않는다.
+- **출력 파일:** `data/analysis/gp_baseline_holdout_predictions.csv` (20×6=120행) 및 `gp_baseline_holdout_summary.json`(MAE/RMSE/interval/fit status/source SHA). 두 파일은 원본을 덮어쓰지 않는다.
+- **실행 명령:** `python experiments/EXP-005_gp_surrogate_reliability/scripts/evaluate_gp_baseline.py`.
 - D040~D059는 ATLAS가 앞선 결과를 보며 *adaptive selection*한 표본이다. 따라서 이 holdout 결과는 **탐색 궤적에 대한 시간순 진단**이지 iid 무작위 일반화 정확도는 아니다.
 - 검증 세트로 모델 설정을 고르면 최종 성능을 같은 세트에서 편향 없이 평가했다고 주장할 수 없다. 가능하면 rolling-origin/후속 관측에서 확인한다.
 
