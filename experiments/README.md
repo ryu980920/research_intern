@@ -1,43 +1,79 @@
-# Experiments
+# Experiments — Reproducible Research Records
 
-`experiments/`는 **하나의 연구 질문 또는 가설을 검증하는 재현 가능한 실험**을 저장합니다.
+각 `EXP-XXX_...`는 **하나의 명시적인 Research Question → 측정 → 판단**을 남기는 독립 연구 기록이다. `logs/`는 날짜별 작업 기록, `experiments/`는 논리적 실험 단위이다.
 
-기본 구조:
+## Standard README Structure
+
+**모든 신규 Experiment의 README는 같은 10개 제목을 같은 순서로 사용한다.** 상세 실행 조건은 `config/run_config.md`에, 반복 설명은 공통 정책에 둬서 README 최상단에서 핵심 목적과 실제 결론을 바로 찾도록 한다.
+
+1. `Experiment at a Glance` — **왜 / 무엇 / 발견 / 다음 판단** 4행 요약
+2. `01. Background & Motivation` — 이전 EXP의 문제와 실험 필요성
+3. `02. Research Question & Hypothesis` — 무엇을 검증하고 어떤 결과를 기대했나
+4. `03. Experimental Setup` — 회로, PVT, 버전, budget 등 재현 조건
+5. `04. Method & Procedure` — 실제 수행 순서와 선택 이유
+6. `05. Metrics & Evaluation Criteria` — spec·단위·성공 판정
+7. `06. Results & Figures` — 수치·표·증거 데이터·그림
+8. `07. Discussion` — Observation → Interpretation → Research implication
+9. `08. Limitations & Issues` — 실패/불확실성/미검증 가설
+10. `09. Conclusion & Next Experiment` — 가설 판단, 다음 RQ와 이유
+
+시작할 때 복사할 표준 문서: **[EXPERIMENT_TEMPLATE.md](EXPERIMENT_TEMPLATE.md)**.
+
+## Standard Data Structure
 
 ```text
-EXP-001_xxx/
-├─ README.md
+EXP-XXX_name/
+├─ README.md                       # Research question + result + decision
 ├─ config/
-├─ scripts/
-└─ data/
+│  └─ run_config.md                # PVT, bounds, tool versions, seeds, reproducibility
+├─ scripts/                        # SPICE run + reproducible analysis/export code
+├─ data/
+│  ├─ design_points.csv            # required: design_id + applied physical parameters
+│  ├─ corner_metrics.csv           # required: design_id × corner + measured metrics + feasible
+│  └─ analysis/                    # optional: derived statistics, margins and summaries
+├─ raw/                            # optional: original run trajectory, logs, waveforms
+└─ figures/                        # optional: plots linked to scripts/data
 ```
 
-- `README.md`: 목적, 질문/가설, 조건, 결과, 해석, 다음 판단
-- `config/`: parameter, target spec, PVT, 버전 등 실행 조건
-- `scripts/`: 해당 실험을 재현하는 실행/분석 코드
-- `data/`: 연구 판단에 직접 사용하는 핵심 metric CSV 또는 dataset
+**데이터 기본 규칙**
 
-`raw/`와 `figures/`는 기본 폴더로 강제하지 않습니다.
+- `data/` 루트에는 **표준 측정 결과 CSV 두 개만** 저장한다.
+- `design_points.csv`: 1 design 당 1행 (`design_id,wp1,wn1,wp3,wn3,wn4,wn5,cc`). Width 단위 m, `cc` 단위 F.
+- `corner_metrics.csv`: 1 design × 1 corner 당 1행 (`design_id,corner,gain_min,ibias_max,phm_min,t_settle_max,ugbw_min,vswing_min,feasible`). 측정 단위는 각각 무차원, A, degree, s, Hz, V.
+- TT-only 실험도 `corner=TT_3.3V_27C`를 기입해 같은 schema를 쓴다. **TT feasible ≠ 17-corner robust feasible**.
+- 실험별 `iteration`, `phase`, `worst_margin`, `total_violation` 같은 확장정보는 `raw/trajectory.csv` 또는 `data/analysis/`에서 보존한다. `corner_metrics.csv`에 임의로 확장 열을 추가하지 않는다.
+- 코너별/설계별 요약표는 `data/analysis/`, 원본 run log/streaming 데이터는 `raw/`, 그림은 `figures/`에 둔다. 파일의 출처와 생성 script를 README에 연결한다.
+- 원본 연구 데이터는 **새 스키마로 정리했다는 이유로 잃지 않는다**. 실행 중 오류·실패한 평가도 기록한다.
+- 전체 AC/DC/transient waveform은 항상 GitHub에 올리지 않아도 된다. 지표가 비정상적이거나 파형 자체가 근거일 때 필요한 design/corner만 생성 조건과 함께 보존한다.
+- 이미 저장된 결과를 **덮어쓰지 않는다**. 반복 실험은 새로운 run ID/Experiment를 사용하거나 출력을 별도 보존한다.
 
-- raw waveform이 특정 이상 결과의 원인 분석이나 근거 제시에 필요할 때만 `raw/`를 만듭니다.
-- 실제 분석/발표에 필요한 figure가 생길 때만 `figures/`를 만듭니다.
+## Experiment Index
 
-각 Experiment README에는 가능한 경우 다음 내용을 포함합니다.
+| Experiment | Status | 왜 했는가? | 완료 결과 / 다음 판단 |
+| --- | --- | --- | --- |
+| [EXP-001](EXP-001_pvt_init_params_baseline/README.md) | **Completed** | D000 한 점에서 corner-wise worst-corner 차이 검증 | 0/17 feasible; 서로 다른 metric의 worst corner 불일치 → 설계점 확대 |
+| [EXP-002](EXP-002_atlas_initial_design_pvt/README.md) | **Completed** | ATLAS initial 20점으로 corner-wise 결과 확장 | D001–D019의 323회 추가; EXP-001과 합쳐 0/340 feasible → TT 탐색 필요 |
+| [EXP-003](EXP-003_tt_adaptive_feasible_discovery/README.md) | **Completed** | GP 기반 Adaptive TT 설계로 first-feasible 탐색 | 0/60 feasible; D050 5/6 pass, worst margin -0.0973 → PM–UGBW bottleneck 및 탐색 확대 |
 
-- Purpose
-- Research Question / Hypothesis
-- Simulation Setup
-- Parameter / Condition
-- Procedure
-- Metrics
-- Results
-- Interpretation
-- Conclusion
-- Limitations
-- Next Experiment
+### 현재 연구 흐름
 
-단순한 환경 확인이나 작은 시행착오는 바로 Experiment 번호를 부여하지 않고 먼저 `logs/`에 기록할 수 있습니다.
-
+```text
+RQ: Corner-wise structure 보존이 robust search 효율에 도움을 주는가?
+   ↓
+EXP-001: D000 × 17 corners → feasible 0
+   ↓
+EXP-002: initial 20 designs × 17 corners → feasible 0
+   ↓
+EXP-003: TT initial20 + adaptive40 → feasible 0, best D050
+   ↓
+Follow-up: TT feasible 후보 확보 / PM–UGBW 관계 확인
+   ↓
+Follow-up: 여러 TT region / 7D 연결성 검증
+   ↓
+Follow-up: same-point 17-corner PVT / persistence
+   ↓
+Follow-up: 동일 SPICE budget·전체 시간의 baseline 대비 개선 검증
+```
 
 ## Experiment Terminal Output Convention (2026-10-09)
 
@@ -64,53 +100,3 @@ TT-only 실험의 표준 예시:
 
 이 규칙은 future Experiment 기본 규칙이며 기존 완료된 EXP-001/002를 소급 재실행한다는 뜻은 아니다.
 
-## PVT Sizing Dataset Convention
-
-여러 design point를 PVT에서 비교하는 실험은 가능한 경우 다음 두 table을 사용합니다.
-
-```text
-data/
-├─ design_points.csv
-└─ corner_metrics.csv
-```
-
-- `design_points.csv`: design_id와 설계 파라미터를 1 design당 1행으로 저장
-- `corner_metrics.csv`: design_id × PVT corner별 metric과 feasibility를 저장
-- 두 파일은 `design_id`로 연결
-
-이 구조는 transistor parameter를 corner 수만큼 반복 저장하지 않으면서도, 특정 design과 모든 PVT 결과를 추적할 수 있게 합니다.
-
-
-## Experiment Index
-
-| Experiment | Status | Role in Research Logic | Key Result |
-| --- | --- | --- | --- |
-| `EXP-001_pvt_init_params_baseline` | Completed | D000 한 점에서 17-corner PVT baseline 확보 | metric별 worst corner가 서로 다름, feasible 0 / 17 |
-| `EXP-002_atlas_initial_design_pvt` | Completed | ATLAS initial 20-point set을 multi-design PVT로 확대 | 20 × 17 = 340 evaluations, feasible 0 / 340, worst-corner mismatch 반복 확인 |
-| `EXP-003_tt_adaptive_feasible_discovery` | Planned / preflight 대기 | ATLAS adaptive TT search로 **최초 TT feasible point 및 joint violation 추세** 확인 | budget 60, n_init 20, GP surrogate, first feasible early stop; multi-island 검증은 범위 밖 |
-
-현재 연구 논리:
-
-```text
-EXP-001
-one-point corner-wise baseline
-        ↓
-EXP-002
-optimizer-default 20-point PVT pilot
-        ↓
-feasible point 0
-        ↓
-EXP-003 (실행 전)
-first TT feasible / boundary discovery
-        ↓
-후속 계획 A — TT Multi-Island Discovery
-first point 주변 + 서로 떨어진 feasible region 후보 탐색
-        ↓
-후속 계획 B — Same-Point 17-Corner PVT
-동일한 7D x 집합으로 각 corner의 region 변화 관찰
-        ↓
-후속 계획 C — Persistence Modeling / Baseline Comparison
-corner-wise information의 robust search 효율 검증
-```
-
-Experiment 번호는 단순 작업 순서가 아니라 **독립적인 Research Question / Hypothesis가 명확해졌을 때** 부여한다.
