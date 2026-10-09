@@ -1,0 +1,128 @@
+{
+  "experiment": "EXP-005",
+  "stage": "3A confirmed_invalid_label_filtering",
+  "status": "completed",
+  "original_atlas_sha": "dd23c5ba7beb598909be593e4a84c81dab92cc69",
+  "raw_trajectory_sha256": "46688d66b66d41e3f485cfeb1a6e152105dd60ae91e3d89a192a53ac648d5ba3",
+  "metric_semantics_audit_sha256": "9aab242abc1b9be8a1dc30b0252a20f4ba7bc3179b05aae1177109b24d5ef65f",
+  "metric_semantics_flags_sha256": "9f5972cf7600d6715c39c4fc673ed644a2e2096295d95556d8421fcba9c620cc",
+  "baseline_predictions_sha256": "6a342e0aea5249bcb444cec67eb4d85b06ad50900b85746e541506370eecee72",
+  "baseline_summary_sha256": "d834795a96ef513307282bddc72aead270669ba780bec91eb341622318d4e897",
+  "split_train": "D000-D039",
+  "split_holdout": "D040-D059",
+  "seed_for_b_per_metric": 42,
+  "stage2_baseline_fit_fallbacks": [],
+  "n_new_spice": 0,
+  "gp_b_total_fit_seconds": 5.620913318000021,
+  "metric_results": {
+    "phm_min": {
+      "units": "deg",
+      "n_train_a": 40,
+      "n_train_b": 39,
+      "n_holdout_for_both": 19,
+      "excluded_train_ids_b": [
+        "D014"
+      ],
+      "excluded_holdout_ids_for_both": [
+        "D047"
+      ],
+      "a_original_baseline": {
+        "n": 19,
+        "mae": 16.899457916400856,
+        "rmse": 21.878076761403666,
+        "median_abs_error": 13.26249732347437,
+        "approx95_interval_hit_rate": 0.8421052631578947,
+        "negative_predicted_means": 0
+      },
+      "b_confirmed_fallbacks_excluded": {
+        "n": 19,
+        "mae": 14.963789483291988,
+        "rmse": 19.06772528733991,
+        "median_abs_error": 11.370152172850169,
+        "approx95_interval_hit_rate": 0.8947368421052632,
+        "negative_predicted_means": 0
+      },
+      "mae_reduction_pct_positive_means_improved": 11.454026766327866,
+      "b_fit_seconds": 3.223630635999143,
+      "b_fit_fallback_detected": false,
+      "b_fit_stdout": []
+    },
+    "ugbw_min": {
+      "units": "MHz",
+      "n_train_a": 40,
+      "n_train_b": 39,
+      "n_holdout_for_both": 19,
+      "excluded_train_ids_b": [
+        "D014"
+      ],
+      "excluded_holdout_ids_for_both": [
+        "D047"
+      ],
+      "a_original_baseline": {
+        "n": 19,
+        "mae": 7108242.1585476715,
+        "rmse": 10540542.408762604,
+        "median_abs_error": 5103892.146019398,
+        "approx95_interval_hit_rate": 0.8947368421052632,
+        "negative_predicted_means": 0
+      },
+      "b_confirmed_fallbacks_excluded": {
+        "n": 19,
+        "mae": 9839450.437860172,
+        "rmse": 15329066.996154346,
+        "median_abs_error": 7595075.723165866,
+        "approx95_interval_hit_rate": 0.8947368421052632,
+        "negative_predicted_means": 0
+      },
+      "mae_reduction_pct_positive_means_improved": -38.423118098589526,
+      "b_fit_seconds": 1.5780649190000986,
+      "b_fit_fallback_detected": false,
+      "b_fit_stdout": []
+    },
+    "t_settle_max": {
+      "units": "us",
+      "n_train_a": 40,
+      "n_train_b": 34,
+      "n_holdout_for_both": 19,
+      "excluded_train_ids_b": [
+        "D013",
+        "D014",
+        "D015",
+        "D016",
+        "D017",
+        "D023"
+      ],
+      "excluded_holdout_ids_for_both": [
+        "D047"
+      ],
+      "a_original_baseline": {
+        "n": 19,
+        "mae": 0.008005331632247252,
+        "rmse": 0.019293746699091733,
+        "median_abs_error": 0.0013373202392484873,
+        "approx95_interval_hit_rate": 1.0,
+        "negative_predicted_means": 8
+      },
+      "b_confirmed_fallbacks_excluded": {
+        "n": 19,
+        "mae": 7.93263290221432e-06,
+        "rmse": 2.2695089551338383e-05,
+        "median_abs_error": 2.903897507565635e-06,
+        "approx95_interval_hit_rate": 0.9473684210526315,
+        "negative_predicted_means": 0
+      },
+      "mae_reduction_pct_positive_means_improved": 99.90090812889925,
+      "b_fit_seconds": 0.8192177630007791,
+      "b_fit_fallback_detected": false,
+      "b_fit_stdout": []
+    }
+  },
+  "limitations": [
+    "Small/normal-looking settling values may still be extractor fallback values.",
+    "Only confirmed invalid labels are excluded. Failed-design metadata must be preserved separately to prevent proposing bad candidates.",
+    "The A model uses 40 training labels and the B model fewer, by design. Both are scored on the same metric-specific unflagged holdout designs.",
+    "GP A uses recorded Stage-2 predictions; GP B refits pinned single-spec GPSurrogate with identical YAML bounds/kernel but a filtered dataset.",
+    "The data were adaptively chosen. N=19 unflagged holdout observations are not an independent random generalization benchmark.",
+    "Both A and B may predict performance for physically invalid designs. Classification or censored-output handling is needed before deploying model B for ATLAS candidate selection."
+  ]
+}
