@@ -175,12 +175,16 @@ YAML 파싱 결과: 7 parameters, 6 specs, 17 netlists(TT + 다른 16개), `init
 
 **Research implication:** 논문 대비 baseline 실험 시 주요 환경 설정을 해시·버전으로 고정할 수 있게 됐다. 이 상태에서 곧바로 500회 실행을 시작하지 말고 **`.spiceinit` 내용 확인 / 독립 출력 경로 / 1회 benchmark run의 예산과 보존 정책**을 확정한다.
 
-**Next (읽기 전용):**
+### 7.4. `.spiceinit` 내용 확인 및 독립 실행 준비
 
-```bash
-cd ~/atlas
-git status --short
-cat eval_engines/ngspice/ngspice_inputs/netlist/.spiceinit
+사용자가 `cat eval_engines/ngspice/ngspice_inputs/netlist/.spiceinit` 결과를 제공했다. **전체 내용:**
+
+```spice
+set num_threads=1
 ```
 
-이후 `500 evaluation` 제한 / `seed42` / `n_init21` / 별도 재현 실험 폴더 / auto or gp surrogate 정책을 결정하고, 첫 benchmark 실행 이전에 WSL baseline 환경 snapshot을 새 파일로 저장한다. **현재 새 시뮬레이션은 0회**.
+이는 ngspice 스레드 수와 관련된 설정이며 **단위/스펙/소자 모델/회로 파라미터를 수정하는 SPICE 명령은 아니다**. 그러나 `.spiceinit`이 source-netlist 디렉터리에 있다는 사실만으로 실제 subprocess가 이 파일을 읽었다고 증명할 수 없다. ATLAS wrapper는 `subprocess.run(["ngspice","-b",fpath])`처럼 별도의 `cwd` 인수를 주지 않아 caller의 현재 작업 디렉터리를 상속한다. 기존 EXP-003과 준비된 재현 wrapper 모두 ATLAS root를 현재 작업 디렉터리로 사용하므로 **해당 netlist 디렉터리의 파일이 실제 startup에서 자동 로드됐는지 미확인**이다. 삭제·이동·복제·명시적 설정 추가는 하지 않는다. **이것을 수치 오차 또는 논문 실험 불일치의 확인된 원인으로 기록하지 않는다.**
+
+별도 실행 준비: [EXP-006 공개코드 TSA 기준선 재현](../../experiments/EXP-006_atlas_release_baseline_reproduction/README.md) 및 [기본값이 안전한 `run_release_baseline.py`](../../experiments/EXP-006_atlas_release_baseline_reproduction/scripts/run_release_baseline.py). TSA, TT, seed42, 500회 예산, 초기 21개, GP 고정 및 early stop. 고정 소스의 `TopoBO.optimize`를 이용하되 각 평가된 design/6개 실제 성능을 추가 raw CSV에 독립 기록. **기본 실행은 read-only 점검이며 SPICE 실행에는 별도 명시적 `--execute` 필요.** 준비 시점에는 SPICE 0회, 재현 결과 아직 없음.
+
+**Next (읽기 전용):** 새 [EXP-006 실행 wrapper](../../experiments/EXP-006_atlas_release_baseline_reproduction/scripts/run_release_baseline.py)를 `--execute` 없이 실행하여 고정 설정 및 PDK를 다시 점검하고, 출력된 `[SAFE]`를 확인한다. 그다음 첫 500-eval 1-run 승인 여부를 결정한다. **현재 새 시뮬레이션은 0회**.
