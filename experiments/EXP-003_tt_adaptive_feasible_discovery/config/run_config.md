@@ -63,20 +63,30 @@ sw_stat_global = 0
 sw_stat_mismatch = 0
 ```
 
-## Output
+## Output — Standardized Repository Layout
 
-Primary:
+**Actual EXP-003 run (2026-10-09 23:56):** the previous script wrote a combined `data/trajectory.csv`. This original file was preserved **without changing its contents** at `raw/trajectory.csv` when the repository format was standardized.
 
-- `data/trajectory.csv`
-- `data/run_summary.json`
+**Standard output for archived results and future scripts:**
 
-Execution evidence:
+```text
+data/
+├─ design_points.csv         # 1 design_id / row, 7 applied parameters
+└─ corner_metrics.csv        # design_id, TT corner, 6 metrics, feasible
+raw/
+├─ trajectory.csv            # original, iteration/phase + all parameters/metrics
+├─ run_summary.json          # future run-generated summary; not committed for prior run
+└─ atlas_logs/
+   └─ <run_id>/
+      ├─ iterations.jsonl    # one actual run archived (60 rows)
+      ├─ config.json         # local run artifact (not yet committed)
+      ├─ progress.log        # local run artifact (not yet committed)
+      └─ results.json        # local run artifact (not yet committed)
+```
 
-- `raw/atlas_logs/<run_id>/config.json`
-- `raw/atlas_logs/<run_id>/iterations.jsonl`
-- `raw/atlas_logs/<run_id>/progress.log`
-- `raw/atlas_logs/<run_id>/results.json`
+The current `run_adaptive_tt_search.py` streams `raw/trajectory.csv` and, on successful completion, invokes `scripts/export_standard_data.py` to build the two canonical CSVs. It **refuses to overwrite** existing recorded outputs. The exporter can also be run separately against a raw trajectory without executing SPICE, with an empty output folder.
 
+Only files confirmed uploaded are listed as archived; missing or unverified local artifacts are not claimed to be on GitHub.
 
 ## Research Purpose and Experiment Boundary
 
