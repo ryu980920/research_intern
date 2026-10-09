@@ -1,164 +1,94 @@
-# EXP-001 — PVT Baseline at ATLAS Initial Parameters
+# EXP-001 — Initial Design의 17-Corner PVT Baseline
 
-_Date: 2026-10-04_
+**Status:** Completed · **Date:** 2026-10-04 · **Circuit:** GF180 two-stage op-amp · **Evaluation:** D000 × 17 PVT corners
 
-## Purpose
+## Experiment at a Glance
 
-ATLAS two-stage GF180 op-amp의 기본 `init_params` 한 점을 17개 PVT corner에서 실제로 평가해, corner-wise metric 수집이 정상 동작하는지 확인하고 향후 feasible-island 분석의 첫 baseline을 확보한다.
+| 항목 | 이번 실험의 답 |
+| --- | --- |
+| **왜 했는가?** | ATLAS 기본 설계안에서 PVT에 따른 성능 차이와 worst-corner 정보를 확인하고, 이후 연구의 첫 기준점을 확보하기 위해 |
+| **무엇을 했는가?** | YAML `init_params`인 D000을 TT 포함 17개 corner에서 ngspice로 평가 |
+| **무엇을 알았는가?** | Feasible corner **0/17**; 성능 지표마다 가장 불리한 corner가 서로 달랐음 |
+| **그래서 다음은?** | 설계안 수를 늘려 같은 현상을 검증해야 함 → [EXP-002](../EXP-002_atlas_initial_design_pvt/README.md) |
 
-## Research Question
+## 01. Background & Motivation
 
-1. 동일한 design point를 17개 PVT corner에서 평가했을 때 metric이 실제로 corner별로 달라지는가?
-2. metric별 worst corner는 동일한가, 서로 다른가?
-3. 이 한 점의 결과가 corner-wise 정보를 유지해야 할 필요성을 조사할 근거를 제공하는가?
+장기 연구 목표는 **Cross-PVT Persistent Feasible-Island Modeling for Robust Analog Sizing**이다. 단순히 worst-case 값 한 세트만 저장하면 어떤 corner가 각 성능을 제한했는지 추적하기 어렵다. 먼저 실제로 corner별 결과가 달라지는지 한 설계안에서 확인해야 이후 multi-design 연구를 설계할 수 있다.
 
-이 실험 하나만으로 feasible island의 존재나 구조를 결론 내리지는 않는다. Island를 보려면 여러 design point가 필요하다.
+## 02. Research Question & Hypothesis
 
-## Simulation Setup
+- **RQ1:** 동일한 설계안 D000은 17개 PVT corner에서 서로 다른 성능을 보이는가?
+- **RQ2:** Gain·Ibias·PM·Settling·UGBW·Swing의 worst corner가 일치하는가?
+- **Working hypothesis:** corner별 성능 차이가 있으며, 모든 metric의 worst corner가 같지는 않을 수 있다.
 
-- Circuit: two-stage op-amp, GF180
-- Design point: YAML의 `init_params`
-- PVT corners: TT 1개 + FF/SS/FS/SF 기반 16개 = 총 17개
-- Simulator: ngspice 44.2
-- PDK: GF180 primitive ngspice model
-- Statistical variation:
-  - `sw_stat_global = 0`
-  - `sw_stat_mismatch = 0`
-- 목적: PVT 영향만 분리해 deterministic하게 비교
+이번 실험은 **feasible island의 존재를 검증하지 않는다**. 설계점 하나로는 영역의 경계나 연결성을 알 수 없기 때문이다.
 
-## Parameter / Condition
+## 03. Experimental Setup
 
-| Parameter | Value |
-| --- | ---: |
-| wp1 | 17.33e-6 |
-| wn1 | 88.76e-6 |
-| wp3 | 72.10e-6 |
-| wn3 | 46.21e-6 |
-| wn4 | 19.64e-6 |
-| wn5 | 70.00e-6 |
-| cc | 3.48e-12 |
+| 항목 | 설정 |
+| --- | --- |
+| Circuit | GF180 two-stage op-amp |
+| Design point | `D000` = YAML `init_params` |
+| Parameters | `wp1=17.33e-6`, `wn1=88.76e-6`, `wp3=72.10e-6`, `wn3=46.21e-6`, `wn4=19.64e-6`, `wn5=70e-6` m; `cc=3.48e-12` F |
+| PVT | TT(3.3 V, 27 °C) + FF/SS/FS/SF × {3.0/3.6 V} × {-40/125 °C}; 총 17 |
+| Simulator | ngspice 44.2; GF180 primitive PDK |
+| Statistical switches | `sw_stat_global=0`, `sw_stat_mismatch=0` (deterministic PVT 비교) |
+| Code baseline | ATLAS `dd23c5ba7beb598909be593e4a84c81dab92cc69` |
 
-Target specifications:
+자세한 모델 버전·환경·조건은 [config/run_config.md](config/run_config.md)에 기록한다.
 
-| Metric | Constraint |
-| --- | ---: |
-| gain_min | >= 300 |
-| ugbw_min | >= 20 MHz |
-| phm_min | >= 60 deg |
-| ibias_max | <= 1 mA |
-| t_settle_max | <= 6 us |
-| vswing_min | >= 0.3 V |
+## 04. Method & Procedure
 
-## Procedure
+1. `CircuitEvaluator`와 동일한 회로 모델을 사용해 D000의 7개 설계 변수를 고정했다.
+2. TT + 16개 PVT corner를 각각 평가해 여섯 성능 지표를 추출했다.
+3. corner별로 **여섯 목표를 동시에 통과하는지** 판정했다.
+4. 설계 변수는 `data/design_points.csv`, 측정값은 `data/corner_metrics.csv`에 구분해 저장했다.
+5. 각 metric을 가장 나쁘게 만드는 corner를 비교했다.
 
-1. `CircuitEvaluator(..., pvt=True)`로 17개 corner simulator를 구성했다.
-2. 동일한 `init_params`를 TT와 나머지 16개 corner에 각각 입력했다.
-3. 각 corner에서 gain, Ibias, PM, settling time, UGBW, output swing을 추출했다.
-4. 각 corner가 target specification을 모두 만족하는지 판정했다.
-5. 설계 파라미터는 `design_points.csv`, 17개 corner metric은 `corner_metrics.csv`로 분리해 저장했다.
+재현 코드: [scripts/evaluate_init_params_pvt.py](scripts/evaluate_init_params_pvt.py).
 
-실행 스크립트: `scripts/evaluate_init_params_pvt.py`
+## 05. Metrics & Evaluation Criteria
 
-## Data
+| Metric | 통과 조건 | 단위 |
+| --- | --- | --- |
+| `gain_min` | ≥ 300 | dimensionless |
+| `ugbw_min` | ≥ 20 | MHz |
+| `phm_min` | ≥ 60 | degree |
+| `ibias_max` | ≤ 1 | mA |
+| `t_settle_max` | ≤ 6 | µs |
+| `vswing_min` | ≥ 0.3 | V |
 
-Primary result datasets:
+**Corner feasible** = 해당 corner에서 여섯 spec 모두 통과. Worst corner는 각 metric의 최소/최대 방향에 따라 결정한다. 모든 corner의 metric-wise worst 값을 모아 만든 vector는 한 physical corner의 실제 관측치와 다를 수 있다.
 
-- `data/design_points.csv`
-  - 1 row = D000
-  - columns: design_id, wp1, wn1, wp3, wn3, wn4, wn5, cc
-- `data/corner_metrics.csv`
-  - 17 rows = D000의 17 PVT corners
-  - columns: design_id, corner, gain, Ibias, PM, settling, UGBW, Vswing, feasible
+## 06. Results & Figures
 
-두 파일은 `design_id`로 연결한다. 설계 파라미터와 PVT 결과를 분리해 같은 파라미터가 17번 반복 저장되는 것을 피한다.
+**실측 결과:** 17개 corner 모두 infeasible. 전 corner에서 `phm_min < 60°`이고, 두 corner에서는 UGBW도 20 MHz 미만이었다(SS/3.0 V/125 °C: 18.922 MHz; SF/3.0 V/125 °C: 19.936 MHz).
 
-## Results
-
-- Feasible corners: **0 / 17**
-- 17개 모든 corner에서 `phm_min < 60 deg`
-- 추가로 UGBW가 20 MHz 미만인 corner:
-  - SS / 3.0 V / 125 C: 18.922 MHz
-  - SF / 3.0 V / 125 C: 19.936 MHz
-
-Metric별 worst corner:
-
-| Metric | Worst corner | Worst value | Target satisfied? |
+| Metric | 가장 불리한 corner | Worst value | 목표 |
 | --- | --- | ---: | --- |
-| Gain | FF / 3.0 V / 125 C | 420.06 | Yes |
-| Ibias | FF / 3.6 V / -40 C | 0.660 mA | Yes |
-| Phase Margin | FS / 3.6 V / -40 C | 26.64 deg | **No** |
-| Settling Time | SS / 3.0 V / 125 C | 2.971 us | Yes |
-| UGBW | SS / 3.0 V / 125 C | 18.922 MHz | **No** |
-| Vswing | FF / 3.0 V / 125 C | 0.780 V | Yes |
+| Gain | FF / 3.0 V / 125 °C | 420.06 | Pass |
+| Ibias | FF / 3.6 V / -40 °C | 0.660 mA | Pass |
+| PM | FS / 3.6 V / -40 °C | 26.64° | **Fail** |
+| Settling | SS / 3.0 V / 125 °C | 2.971 µs | Pass |
+| UGBW | SS / 3.0 V / 125 °C | 18.922 MHz | **Fail** |
+| Swing | FF / 3.0 V / 125 °C | 0.780 V | Pass |
 
-## Observation
+주요 데이터: [design_points.csv](data/design_points.csv) (1행), [corner_metrics.csv](data/corner_metrics.csv) (17행). 두 CSV는 `design_id`로 연결된다. 현재 필수 figure는 별도 생성하지 않았으며 표는 원본 CSV 값에 근거한다.
 
-metric별 worst corner가 하나로 일치하지 않았다.
+## 07. Discussion
 
-- Gain / Vswing worst: FF / 3.0 V / 125 C
-- Ibias worst: FF / 3.6 V / -40 C
-- PM worst: FS / 3.6 V / -40 C
-- Settling / UGBW worst: SS / 3.0 V / 125 C
+- **Observation:** Gain·Swing, Ibias, PM, Settling·UGBW가 각각 다른 corner에서 최악이었다.
+- **Interpretation:** metric-wise worst-case로 압축한 결과는 여러 corner의 관측치를 섞은 vector가 될 수 있다.
+- **Research implication:** 향후 optimizer의 worst-case 입력뿐 아니라 **corner identity와 corner-wise metric/feasibility**를 따로 보존해야 한다. 다만 모든 corner를 평가했다면 worst-case 압축이 최종 robust feasible의 참/거짓을 바꾸는 것은 아니다. 여기서 검증할 것은 구조 정보의 유실과 탐색 영향이다.
 
-## Interpretation
+## 08. Limitations & Issues
 
-PVT worst-case compression으로 만든 spec vector는 하나의 실제 corner 상태를 그대로 나타내는 것이 아니라, metric마다 서로 다른 corner에서 가져온 worst value의 조합이 될 수 있다.
+- 단일 설계점만 평가해 feasible region의 크기·경계·연결성·persistence는 분석할 수 없다.
+- Feasible corner가 0개라는 사실은 전체 설계공간에서 feasible이 존재하지 않는다는 증거가 아니다.
+- 모든 corner의 AC/DC/transient 원시 파형은 상시 보존하지 않았다. 이상 결과 검증 시 필요 corner만 재실행하고 생성 조건을 남긴다.
 
-다만 design point가 한 개뿐이므로, 이 결과만으로 corner-wise feasible island가 실제로 이동/분열/소멸한다고 결론 내릴 수는 없다.
+## 09. Conclusion & Next Experiment
 
-## Research Implication
+**결론:** PVT corner가 달라지면 성능이 바뀌며 metric별 worst corner도 일치하지 않음을 확인했다. 이 결과는 corner-wise 측정값을 보존하는 실험 구조의 첫 근거다.
 
-첫 17-corner baseline에서 이미 metric별 worst corner가 다르다는 사실을 확인했다. 따라서 이후 여러 design point를 수집할 때는 worst-case vector만 저장하지 않고 **corner-wise metric과 feasibility를 함께 보존**해야 한다.
-
-이 데이터가 누적되어야 다음 질문을 검증할 수 있다.
-
-> worst-case compression이 corner별 feasible-region 구조를 얼마나 지우는가?
-
-## Data Retention
-
-본 실험의 연구 판단에 직접 필요한 결과는 `data/design_points.csv`와 `data/corner_metrics.csv`에 보존한다.
-
-ngspice가 내부적으로 생성하는 AC/DC/DC-sweep/transient raw CSV는 모든 corner에 대해 상시 보존하지 않는다. feasible-region 분석에는 corner-wise metric과 feasibility가 직접 사용되며, 모든 raw waveform을 저장하면 design point 수가 증가할수록 파일 관리 비용이 크게 늘어나기 때문이다.
-
-특정 metric의 이상값을 진단하거나 waveform 자체가 근거로 필요한 경우에는 해당 design/corner만 동일 config로 재실행해 raw waveform을 선택적으로 보존한다.
-
-## Limitations
-
-- design point가 YAML `init_params` 한 점뿐이다.
-- 17개 corner가 모두 infeasible이므로 이 실험만으로 feasible-island의 위치, 크기, 이동 또는 persistence를 판단할 수 없다.
-- 따라서 이번 결과는 corner-wise evaluation 동작과 metric별 worst-corner 차이를 확인한 baseline으로 해석한다.
-
-## Next Experiment at Completion
-
-EXP-001 완료 시점의 다음 계획은 다음과 같았다.
-
-다음 PVT dataset에서는:
-
-1. 여러 design point를 정의한다.
-2. 각 point에 `design_id`를 부여한다.
-3. 설계 파라미터는 `design_points.csv`에 1행씩, 각 design point의 17-corner metric과 feasibility는 `corner_metrics.csv`에 17행씩 누적한다.
-4. feasible / infeasible point가 함께 나타나는 영역을 확보한다.
-5. 충분한 데이터가 모인 뒤 corner-wise feasible set과 worst-case compressed representation을 비교한다.
-
-
-## Follow-up Status
-
-EXP-001에서 계획했던 multi-design 확대는 `EXP-002_atlas_initial_design_pvt`에서 완료했다.
-
-EXP-001의 D000과 EXP-002의 D001-D019를 합쳐:
-
-```text
-20 designs × 17 corners = 340 corner evaluations
-```
-
-을 확보했다.
-
-후속 결과:
-
-- feasible evaluation: 0 / 340
-- metric별 worst corner 불일치는 multi-design에서도 반복 확인
-- feasible-island 분석을 바로 확대하기에는 feasible sample이 부족함
-
-따라서 EXP-001의 다음 단계였던 “여러 design point로 확대”는 완료되었고, 현재 연구는 **TT feasible / near-feasible region discovery** 단계로 넘어간다.
-
-세부 결과는 `../EXP-002_atlas_initial_design_pvt/README.md`와 `../../CURRENT.md`를 따른다.
+**다음 연구 질문:** 여러 설계점에서도 같은 현상이 나타나는가? → [EXP-002](../EXP-002_atlas_initial_design_pvt/README.md)에서 D001~D019를 추가 평가했고 전체 340개 corner 평가 모두 infeasible이었다.
