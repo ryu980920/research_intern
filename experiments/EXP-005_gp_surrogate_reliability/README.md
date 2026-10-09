@@ -1,6 +1,6 @@
 # EXP-005 — GP Surrogate Reliability & Improvement
 
-**Status:** Prepared (Stage 1 audit run; GP validation pending) · **Date:** 2026-10-10 · **Circuit:** GF180 two-stage op-amp · **PVT:** TT 3.3 V / 27 °C · **New SPICE budget:** **0**
+**Status:** Running (Stage 1/2 completed; extractor semantics verified; classification script pending WSL run) · **Date:** 2026-10-10 · **Circuit:** GF180 two-stage op-amp · **PVT:** TT 3.3 V / 27 °C · **New SPICE budget:** **0**
 
 ## Experiment at a Glance
 
@@ -8,7 +8,7 @@
 | --- | --- |
 | **왜 했는가?** | [EXP-004](../EXP-004_warm_start_smoke_test/README.md)에서 Warm Start는 성공했지만 PM 오차와 비물리적 Settling 예측이 관찰되어, 탐색 횟수를 늘리기 전에 GP의 신뢰성을 평가할 필요가 있음 |
 | **무엇을 하는가?** | EXP-003의 **60개 TT 실측**에서 이상값 점검 → 40개 학습/20개 시간순 검증 → 전처리·모델 비교 |
-| **무엇을 발견했는가?** | **Stage 1 완료(WSL 출력 확인):** 60개 중 점검 대상 7개, 중복 0개. GP Baseline의 holdout 결과는 **Pending** |
+| **무엇을 발견했는가?** | **Stage 1:** 60개 중 플래그 7개, 중복 0개. **Stage 2:** GP 40학습/20검증 완료, PM MAE 28.73°, Settling MAE 53.24 ms(단위 혼합에 따라 의미 제한). **소스 확인:** Settling 측정 실패 시 무차원 오차가 시간 필드로 들어갈 수 있음 |
 | **그래서 다음은?** | 오류 원인을 데이터/전처리/모델 설정으로 좁히고, EXP-006에서 데이터 추가나 TT 탐색 확대 여부를 결정 |
 
 ## 01. Background & Motivation
@@ -29,7 +29,7 @@
 - **RQ4 (조건부):** 관심 설계 영역에 집중한 GP가 전체 공간 GP 대비 개선되는가? 단, 표본 수가 충분할 때만 비교.
 
 **Working hypotheses (검증 전):**
-1. 정상 µs 수준과 수백 ms 수준의 Settling을 한 회귀 타깃으로 학습하면 예측이 불안정해질 수 있다.
+1. 일부 Settling은 실제 시간이 아닌 **무차원 정규화 편차 `d_settle`**이므로 시간과 섞어 GP에 학습시키면 모델 성능을 왜곡할 수 있다. (소스 확인)
 2. 양수 target의 로그 변환으로 비물리적 음수 예측을 피할 가능성이 있다.
 3. D050 주변 표본을 더 잘 설명하려면 국소적 모델이 유용할 수 있지만, 표본이 적으면 오히려 악화할 수도 있다.
 
@@ -69,7 +69,7 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/audit_tt_dataset.py
 
 기본 실행은 분석 결과만 출력한다. 확인 후 `--save`로 `data/analysis/`에 기록할 수 있으며 기존 결과를 덮어쓰지 않는다.
 
-**Stage 2 — 기존 GP baseline의 예측 성능 검증 (코드 구현 완료, WSL 실행 대기)**
+**Stage 2 — 기존 GP baseline의 예측 성능 검증 (WSL 완료)**
 
 - 학습 40개로 GP 6개 모델을 학습하고 D040~D059의 실제 성능을 학습에서는 제외한다.
 - 각 metric의 GP mean/std와 실측을 비교하고 **MAE, RMSE, 정규화 오차, 예측 구간 포함률**을 계산한다.
@@ -85,9 +85,22 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/evaluate_gp_baseline
 
 결과는 `data/analysis/gp_baseline_holdout_predictions.csv` 및 `gp_baseline_holdout_summary.json`에 저장한다(덮어쓰기 금지). 이 실행은 GP fitting을 수행하며 **ngspice는 호출하지 않는다**.
 
-**Stage 3 — 개선 가설 비교 (예정)**
+**Stage 2b — Metric 추출 의미 점검 (소스·원본 데이터 확인 완료; WSL 기록 스크립트 실행 대기)**
 
-- Baseline vs 양수 Settling의 로그 변환 모델을 **같은 데이터 분할**에서 비교한다.
+- [ATLAS `CircuitClass.py`](https://github.com/youngmin0oh/atlas/blob/dd23c5ba7beb598909be593e4a84c81dab92cc69/eval_engines/ngspice/CircuitClass.py)의 `find_ugbw`는 unity-crossing 탐색 실패 시 **첫 AC 주파수(이 netlist에서 1 Hz)**를 반환한다. `find_phm`도 탐색 실패 시 **-180°**를 반환한다.
+- `get_tran_stable_meas`는 유효한 settling index가 없어 계산 결과가 NaN이면 **무차원 `d_settle`을 `settlingTime`에 대입**한다. [GF180 TT netlist](https://github.com/youngmin0oh/atlas/blob/dd23c5ba7beb598909be593e4a84c81dab92cc69/eval_engines/ngspice/ngspice_inputs/netlist/two_stage_opamp_cont_gf180_tran_tt_3.3_27.cir)의 transient 종료는 **401 µs**이다.
+- EXP-003 `trajectory.csv` 확인: D013, D014, D015, D016, D017, D023, D047의 저장된 Settling 값은 **401 µs보다 크므로 관측 가능한 실제 settling 시간일 수 없다**(학습 6, holdout 1). D014/D047의 **UGBW 1 Hz + PM -180°**는 코드의 paired sentinel과 정확히 일치한다(학습 1, holdout 1).
+- 작은 settling 값이라고 유효한 시간이라는 증거는 아니다. 모든 개별 결과의 waveform과 유효성 flag는 아직 남아 있지 않다.
+- 기록 코드: [scripts/diagnose_metric_semantics.py](scripts/diagnose_metric_semantics.py). 소스 SHA·netlist SHA·dataset SHA와 설계별 확정 가능한 플래그를 `data/analysis/metric_semantics_*.{json,csv}`에 보존한다. SPICE/GP 재실행 0회.
+
+```bash
+cd ~/research_intern
+python experiments/EXP-005_gp_surrogate_reliability/scripts/diagnose_metric_semantics.py
+```
+
+**Stage 3 — 개선 가설 비교 (추출 의미 정의 후 수행)**
+
+- 기존 Baseline은 원본 그대로 보존하고, 별도로 **확정적인 무차원 fallback을 학습에서 제외한 raw-target GP와 동일 학습셋의 log-target GP**를 비교한다. 검증도 동일한 후보 집합(확실한 무효 label 제외)에서 한다. 단, 제외되지 않은 샘플의 Settling 유효성은 파형 없이 보장할 수 없다는 한계를 명시한다.
 - 필요하다면 지역별 학습 모델을 검토하되, D050 주변에 데이터가 충분하지 않으면 무리하게 국소 GP가 더 좋다고 주장하지 않는다.
 - 비교 과정에서 새 설계점·SPICE 실행을 만들지 않는다. 추가 측정이 필요하다는 근거가 생길 때만 EXP-006에서 별도 예산을 정한다.
 
@@ -106,19 +119,34 @@ MAE/RMSE는 성능별 단위가 다르므로 metric 간 원시 오차값을 직�
 
 ## 06. Results & Figures
 
-**Pending — Stage 1 audit는 WSL 출력으로 완료 확인. Stage 2 GP baseline 학습 및 20개 holdout 결과는 아직 실행하지 않았다.**
+**Stage 1:** 60개 점검·중복 0개, 이상값 플래그 7개.  
+**Stage 2:** 40 train/20 holdout, 총 120개 예측, GP fit 8.51 s, 캡처된 MLL fallback 메시지 없음, 신규 SPICE 0회. 첨부된 로컬 `gp_baseline_holdout_predictions.csv`를 검사했고 GitHub 업로드는 아직 진행하지 않았다.
+
+| GP | Holdout MAE | 근사 95% 구간 포함률 |
+| --- | ---: | ---: |
+| Gain | 101.542 | 90% |
+| Ibias | 0.160212 mA | 90% |
+| Phase Margin | 28.7337° | 80% |
+| Settling | 53.2425 ms (유효 시간 + 무차원 fallback 혼합이라 **물리적 시간 MAE로 해석 불가**) | 95% |
+| UGBW | 7.05829 MHz (sentinel 포함) | 90% |
+| Swing | 0.165618 V | 90% |
+
+**Extractor 확인:** pin된 ATLAS 코드에서 AC invalid-crossing sentinel과 settling 무차원 fallback의 정확한 발생 경로를 확인했다. 기존 MAE는 **원시 데이터에 대한 수학적 오차**지만 일관된 물리량의 오차로 해석할 수 없는 metric이 있다.
 
 예정 산출물:
 
 ```text
 scripts/
   audit_tt_dataset.py         # Stage 1, 구현/실행 확인
-  evaluate_gp_baseline.py     # Stage 2, 구현/실행 대기
+  evaluate_gp_baseline.py     # Stage 2, GP 학습/검증 WSL 실행 완료
+  diagnose_metric_semantics.py # Stage 2b, extractor 소스 판정 확인/WLS 실행 대기
 data/analysis/
   dataset_audit.json          # Stage 1 실행 후 생성
   anomaly_flags.csv           # Stage 1 --save 실행 후 생성
   gp_baseline_holdout_predictions.csv   # Stage 2 실행 후 120행
   gp_baseline_holdout_summary.json       # Stage 2 실행 후 MAE/RMSE/coverage/fallback
+  metric_semantics_audit.json            # Stage 2b 실행 후 근거와 split별 개수
+  metric_semantics_flags.csv             # Stage 2b 실행 후 설계점별 유효성 판정
   ...                         # Stage 2/3 metric-wise prediction/error (추후 정의)
 figures/
   ...                         # Stage 2/3 예측 vs 실측 및 오차 시각화
@@ -130,20 +158,20 @@ EXP-005에는 **새로운 SPICE 관측값이 없으므로** 이전 실험의 `de
 
 **Observation (현재 알려진 이전 실험 사실):** EXP-004 D060에서 PM mean 59.995° vs observed 38.107°, Settling GP mean은 음수였다.
 
-**Interpretation (미검증 가설):** raw-scale 타깃의 극단적인 분포나 모델 출력 방식이 원인일 가능성은 있으나, **현재 실험에서 증명된 것은 아니다**.
+**Interpretation:** 일부 settling label은 무차원 fallback을 실제 시간처럼 저장한 것임을 코드와 시뮬레이션 길이의 불일치로 확인했다. 이는 GP 학습 타깃의 의미 혼합이다. 다만 이것만으로 모든 PM/UGBW 오차나 GP 학습 불안정의 원인이 확정되지는 않는다.
 
 **Research implication:** EXP-005의 동일 학습·검증 데이터로 원인별 가설을 비교한 후, 추가 SPICE 데이터가 필요한지를 판단한다.
 
 ## 08. Limitations & Issues
 
 - D040~D059는 EXP-003의 **adaptive search로 선택된 샘플**이며 독립 무작위 추출 표본이 아니다. 따라서 단일 holdout 통계는 제한된 탐색 궤적에 대한 진단 결과다.
-- GP fit의 내부 MLL 최적화 실패 여부는 아직 직접 검증되지 않았다.
-- 일부 extreme metric이 물리적으로 실제 가능한 값인지 extractor fallback인지는 아직 확인되지 않았다. 데이터를 임의로 삭제하지 않는다.
+- Stage 2 fit에서 캡처된 MLL 실패/fallback 메시지는 없었다. 수치 최적화의 완전한 품질을 보장하는 것은 아니다.
+- 원본 7개 settling 값이 401 µs 파형으로 측정 가능한 시간이 아님을 확인했다. 해당 raw 숫자는 삭제하지 않는다. 이외 설계점은 waveform이 없어 settling 유효성을 확정하지 못한다.
 - 처음 60개의 모든 데이터가 학습에 충분한 공간 커버리지를 제공한다고 가정하지 않는다.
 - TT-only의 GP 신뢰성은 17-corner robust feasibility 또는 feasible island persistence의 증거가 아니다.
 
 ## 09. Conclusion & Next Experiment
 
-**결론 보류.** Stage 1 audit 결과에서 60개 중 7개 설계점이 점검 대상으로 표시됐고 중복 설계점은 없었다. 이것만으로 GP의 예측 실패 원인은 결정할 수 없다. Stage 2 Baseline GP 검증 코드가 준비됐으며 실제 결과는 실행 대기다. 이후 관측된 예측 오차를 바탕으로 기존 GP를 유지할지, 출력 변환 또는 국소 모델을 채택할지, 추가 데이터를 확보할지 결정한다.
+**부분 결론:** Stage 2에서 원본 GP 예측 오차를 확인했고, Stage 2b 소스 점검에서 **Settling field의 물리적 단위 일관성 결여(실측 시간 vs 무차원 fallback)** 및 **AC 교차 미발견 sentinel**을 확인했다. GP 모델 구조를 수정하기 전에 label validity를 명시하고 동일 평가 집합에서 비교한다. 기존 결과를 덮어쓰거나 sentinel을 근거 없이 실제 성능으로 해석하지 않는다.
 
 **후속 EXP-006 (조건부):** EXP-005에서 데이터 부족이 병목이라고 판단되면 GP 예측 불확실성 및 near-feasible 영역을 고려하여 신규 TT 설계점의 평가 예산과 위치를 설계한다.
