@@ -171,7 +171,7 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/test_settling_gp_uni
 
 **재현 근거:** [Stage 3B 19행 비교 CSV](data/analysis/archive/stage3b_settling_unit_comparison.csv) · [상세 JSON](data/analysis/archive/stage3b_settling_unit_summary.json) · [SHA256 목록](data/analysis/archive/README.md).
 
-**Stage 3B-2 — GP posterior 분산 하한 추적 (코드 준비, WSL 실행 전)**
+**Stage 3B-2 — GP posterior 분산 하한 추적 (WSL 실행 완료; 파일 원본 미업로드)**
 
 ### 연구 질문 정정 및 가설
 
@@ -199,6 +199,29 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/trace_settling_poste
 ```
 
 **판단 기준:** B에서 raw variance가 하한 미만이고 reported variance가 `max(raw, floor)`와 일치한다면 라이브러리 하한 효과가 재현된다. raw 음수가 있으면 수치 안정성 원인도 후속 조사한다. 모든 결과가 하한으로 설명되지 않으면 다른 posterior 생성/변환 단계를 조사한다.
+
+
+
+**Stage 3B-2 결과 — 원본 variance와 GPyTorch 하한 보정 직접 대조**
+
+이번에는 동일한 Settling 학습 **34개 / 검증 19개**, seed 42, 원래 ATLAS SHA `dd23c5ba7beb598909be593e4a84c81dab92cc69`에서 B(s)/C(µs)를 각각 재학습했다. 환경은 **gpytorch 1.15.2, torch 2.14.1+cu130**이며 새 SPICE 호출은 **0회**였다.
+
+| 값 | GP B (s) | GP C (µs) |
+| --- | ---: | ---: |
+| `min_variance` (네이티브 분산 단위) | `1e-10 s²` | `1e-10 µs²` |
+| 보정 전 raw variance가 하한 미만 | **18/19** | **0/19** |
+| 보정 전 raw variance가 음수 | **0/19** | **0/19** |
+| 보정 뒤 `max(raw, floor)` 수치와 일치 | **True** | **True** |
+| `posterior.variance` 경고 | **1건** | **0건** |
+| Stage 3B 저장 예측 mean/std와 최대 차이 | **0 µs / 0 µs** | **0 µs / 0 µs** |
+
+**확인된 직접 원인:** GPyTorch의 원시 covariance diagonal을 대조한 결과 **B의 18개 값은 절대 하한 `1e-10 s²`보다 작고, 분산 반환값은 실제로 `max(raw, floor)`와 일치했다.** 표준편차 10 µs 반복 현상은 **하한 보정에 의해 발생**했다. **실제 음수 raw variance는 없었다.** 이전의 `Negative variance values detected` 경고는 문구만으로 음수 발생을 뜻하지 않는다는 점도 이번 데이터로 확인됐다.
+
+**한계:** 이번 진단으로 `raw variance가 왜 작았는지`(정규화·kernel hyperparameter·noise·수치 연산)는 아직 설명하지 못했다. GP C는 이 하한 보정이 없었던 것이지 **불확실성 예측의 통계적 타당성이 입증된 것은 아니다.** 앞서 B/C의 94.7%/68.4% 구간 포함률은 두 정상 uncertainty 모델의 우열을 판정하는 기준이 아님을 유지한다.
+
+**파일 상태:** 사용자 WSL에 `data/analysis/stage3b2_variance_trace.csv`, `stage3b2_variance_trace_summary.json` 생성 완료라는 터미널 출력이 확인됐다. **두 파일 자체는 이번 대화에 업로드되지 않았으며 GitHub에도 아직 없다.** 이 로그 요약은 출력된 집계값을 근거로 함. GP 원본 소스는 변경하지 않았다.
+
+**다음 우선순위:** **분산 하한 현상의 직접적인 원인 규명은 일단 마무리**한다. 추가 Settling GP 미세 조정보다 처음 EXP-005를 시작하게 한 **PM 경계(60°) 및 PM–UGBW joint-feasibility 오판**을 분석한다. 기존 D000–D059와 Stage 2/3A 예측을 활용하는 **Stage 4 (준비 예정)**에서 PM의 false pass / false reject, 경계 부근 오차, PM과 UGBW를 동시에 통과한다고 예측하지만 실제로는 실패한 설계안을 조사한다. 이 분석은 신규 SPICE 없이 시작할 수 있고, 검증 19/20개가 iid가 아님을 명시한다.
 
 
 **Stage 3C 및 이후 — 측정 유효성/실패 영역 처리 (추후 검토)**
@@ -269,7 +292,7 @@ scripts/
   diagnose_metric_semantics.py # Stage 2b, extractor 소스 판정 확인/WSL 실행 완료
   compare_validity_aware_gp.py # Stage 3A, GP(A) vs 대체값 제외 GP(B) WSL 실행 완료
   test_settling_gp_unit_stability.py  # Stage 3B, WSL 실행 완료
-  trace_settling_posterior_variance.py # Stage 3B-2, raw variance floor audit 준비
+  trace_settling_posterior_variance.py # Stage 3B-2, WSL 실행 완료; raw variance audit
 data/analysis/
   dataset_audit.json          # Stage 1 실행 후 생성
   anomaly_flags.csv           # Stage 1 --save 실행 후 생성
@@ -281,8 +304,8 @@ data/analysis/
   validity_aware_gp_summary.json         # Stage 3A 실행 후 지표별 MAE/RMSE/coverage
   stage3b_settling_unit_comparison.csv   # Stage 3B WSL 로컬 생성; GitHub archive/ 사본 보존
   stage3b_settling_unit_summary.json     # Stage 3B WSL 로컬 생성; GitHub archive/ 사본 보존
-  stage3b2_variance_trace.csv           # Stage 3B-2 실행 시 raw/reported 분산 대조
-  stage3b2_variance_trace_summary.json  # Stage 3B-2 실행 시 raw 음수/하한 미만 개수
+  stage3b2_variance_trace.csv           # Stage 3B-2 WSL 생성; GitHub 원본 미보존
+  stage3b2_variance_trace_summary.json  # Stage 3B-2 WSL 생성; GitHub 원본 미보존
   ...                         # Stage 2/3 metric-wise prediction/error (추후 정의)
 figures/
   ...                         # Stage 2/3 예측 vs 실측 및 오차 시각화
@@ -311,6 +334,6 @@ EXP-005에는 **새로운 SPICE 관측값이 없으므로** 이전 실험의 `de
 
 ## 09. Conclusion & Next Experiment
 
-**현재 부분 결론:** Stage 1/2/2b/3A/3B까지 실제 실행했다. 학습 label validity 문제가 코드와 원본 실측 비교로 밝혀졌고, 확인된 fallback을 제외하자 PM·Settling의 MAE는 줄었지만 UGBW는 증가했다. Settling GP B의 posterior 분산 경고 때문에 uncertainty calibration은 미검증이다. **GP B를 곧바로 ATLAS에 적용하거나 연구 가설을 입증했다고 결론 내리지 않는다.** Stage 3B에서 동일한 34/19와 같은 ATLAS GP를 유지한 채 타깃 단위만 변경하자, B의 음수 분산 경고(1건)·10 µs std 반복(18/19)이 C에서는 모두 사라졌다. **실제 CSV/JSON에서 C 구간 포함률 13/19(68.4%)로 B의 18/19(94.7%)보다 낮았음을 확인했다. 정확한 수치 보정 경로와 적절한 예측구간의 구성은 추가 검증이 필요하다.**
+**현재 부분 결론:** Stage 1/2/2b/3A/3B/3B-2까지 실제 실행했다. 학습 label validity 문제가 코드와 원본 실측 비교로 밝혀졌고, 확인된 fallback을 제외하자 PM·Settling의 MAE는 줄었지만 UGBW는 증가했다. Settling GP B의 posterior 분산 경고 때문에 uncertainty calibration은 미검증이다. **GP B를 곧바로 ATLAS에 적용하거나 연구 가설을 입증했다고 결론 내리지 않는다.** Stage 3B에서 동일한 34/19와 같은 ATLAS GP를 유지한 채 타깃 단위만 변경하자, B의 음수 분산 경고(1건)·10 µs std 반복(18/19)이 C에서는 모두 사라졌다. **실제 CSV/JSON에서 C 구간 포함률 13/19(68.4%)로 B의 18/19(94.7%)보다 낮았음을 확인했다. 정확한 수치 보정 경로와 적절한 예측구간의 구성은 추가 검증이 필요하다.**
 
 **후속 EXP-006 (조건부):** EXP-005에서 데이터 부족이 병목이라고 판단되면 GP 예측 불확실성 및 near-feasible 영역을 고려하여 신규 TT 설계점의 평가 예산과 위치를 설계한다.
