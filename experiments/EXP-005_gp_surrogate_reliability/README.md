@@ -1,6 +1,6 @@
 # EXP-005 — GP Surrogate Reliability & Improvement
 
-**Status:** Running (Stage 1/2/2b/3A executed; Stage 3B planned) · **Date:** 2026-10-10 · **Circuit:** GF180 two-stage op-amp · **PVT:** TT 3.3 V / 27 °C · **New SPICE budget:** **0**
+**Status:** Running (Stage 1/2/2b/3A/3B executed; post-run analysis pending) · **Date:** 2026-10-10 · **Circuit:** GF180 two-stage op-amp · **PVT:** TT 3.3 V / 27 °C · **New SPICE budget:** **0**
 
 ## Experiment at a Glance
 
@@ -9,7 +9,7 @@
 | **왜 했는가?** | [EXP-004](../EXP-004_warm_start_smoke_test/README.md)에서 Warm Start는 성공했지만 PM 오차와 비물리적 Settling 예측이 관찰되어, 탐색 횟수를 늘리기 전에 GP의 신뢰성을 평가할 필요가 있음 |
 | **무엇을 하는가?** | EXP-003의 **60개 TT 실측**에서 이상값 점검 → 40개 학습/20개 시간순 검증 → 전처리·모델 비교 |
 | **무엇을 발견했는가?** | **Stage 1:** 60개 중 7개 조사 대상. **Stage 2:** 원본 GP 40/20 검증, PM MAE 28.73°. **Stage 2b:** Settling의 무차원 fallback이 시간 필드에 혼합됨을 확인. **Stage 3A:** 대체값 제외 GP(B)는 PM·Settling 오차 감소, UGBW 오차 증가. Settling B의 분산 경고 발견 |
-| **그래서 다음은?** | Stage 3B에서 GP B의 수치 안정성/예측 분산을 확인(아직 미실행) → 측정 성공 flag·실패 설계 정보 분리 → 필요 시 EXP-006 추가 평가 결정 |
+| **그래서 다음은?** | **Stage 3B 실행 결과:** 초 단위 B에서 분산 경고 1건/표준편차 10 µs 18개, µs 단위 C에서 경고 0건/10 µs 0개. 단위에 민감한 수치 계산 현상 발견. → 설계점별 분산·보정 위치 확인 및 물리적 유효성 레이블 정의 → 필요 시 EXP-006 판단 |
 
 ## 01. Background & Motivation
 
@@ -113,7 +113,7 @@ git pull --ff-only
 python experiments/EXP-005_gp_surrogate_reliability/scripts/compare_validity_aware_gp.py
 ```
 
-**Stage 3B — 단위에 따른 Settling GP 수치 안정성 검증 (실행 코드 준비, WSL 미실행)**
+**Stage 3B — 단위에 따른 Settling GP 수치 안정성 검증 (WSL 실행 완료, 2026-10-10)**
 
 - GP B에서 **GPyTorch Negative variance 경고**가 출력됐고, Settling B 예측 표준편차가 **19개 중 18개에서 1e-5 s = 10 µs**로 동일했다.
 - **가설적 후속 비교:** Settling B의 **동일한 학습 34개 / 검증 19개**에서 target 단위만 초(s) → 마이크로초(µs)로 변경하고 공통 단위로 역변환해 평균·MAE/RMSE·분산/표준편차·경고 여부를 비교한다.
@@ -131,7 +131,25 @@ git pull --ff-only
 python experiments/EXP-005_gp_surrogate_reliability/scripts/test_settling_gp_unit_stability.py
 \`\`\`
 
-출력 \`MLL_fallback\`과 음수 분산 경고는 다른 문제다. 경고가 사라진다는 것만으로 GP가 정확하거나 uncertainty-calibrated 모델이 됐다고 결론 내릴 수 없다. 실행 결과 수치를 확인한 뒤에만 Stage 3B의 결론을 기재한다.
+출력 \`MLL_fallback\`과 음수 분산 경고는 다른 문제다. 경고가 사라진다는 것만으로 GP가 정확하거나 uncertainty-calibrated 모델이 됐다고 결론 내릴 수 없다. 아래 결과를 통해 단위 민감성이 관찰되었지만, 경고가 사라진다는 사실만으로 GP가 정확하거나 uncertainty-calibrated 모델이 됐다고 결론 내릴 수 없다.
+
+
+**Stage 3B 실측 실행 로그 기반 결과 (새 SPICE 0회, GP fit 2회)**
+
+동일한 학습 설계점 34개 / 검증 설계점 19개, seed 42, ATLAS SHA `dd23c5ba7beb598909be593e4a84c81dab92cc69`, 원본 데이터 SHA256 `46688d66b66d...`, CUDA 사용. Settling 학습 타깃만 **seconds(B) vs microseconds(C)**로 표현했고, 평균·표준편차는 공통 단위로 되돌린 뒤 비교했다.
+
+| 관측 지표 | GP B: s 단위 | GP C: µs 단위 | 해석 |
+| --- | ---: | ---: | --- |
+| Holdout MAE | **7.93263 µs** | **7.72849 µs** | 약 **2.57% 감소**, 작은 개선이며 일반화 성능 입증 아님 |
+| 10 µs와 동일한 posterior std | **18/19** | **0/19** | 단위 변경 후 10 µs 반복 현상 사라짐 |
+| Prediction-time negative-variance 경고 | **1건** | **0건** | 단위에 민감한 수치 계산 현상 관찰 |
+| GP fitting 시간 | **2.56 s** | **1.31 s** | 실행별 시간 변동 가능, 속도 향상 단정 불가 |
+
+- **재현성 통제:** Stage 3B에서 다시 학습한 GP B의 holdout 평균/표준편차는 **Stage 3A B와 최대 차이 0 µs**였다. 따라서 이번 조건에서 B 결과가 그대로 재현됐다.
+- **B vs C:** 19개 설계점에서 예측 평균 최대 차이 **2.25941 µs**, 표준편차 최대 차이 **8.951 µs**. 대상 데이터·모델 구조를 고정했지만 수치 표현 단위에 따라 결과가 달라진다.
+- **해석:** 이전 GP B의 10 µs std 반복이 단순한 정상 GP uncertainty 현상이라기보다 **단위에 영향을 받는 수치 보정과 연관되었을 가능성을 강화**한다. GPyTorch 경고에 나타난 `1e-10` 분산 보정값의 제곱근은 `1e-5`이지만, **실제 posterior의 원시 분산과 clipping 위치까지 추적하지는 않았으므로 정확한 원인은 미확정**이다.
+- **연구 의미:** 원본 fallback-label 처리와 독립적으로 surrogate posterior의 **수치 안정성 검증이 필요함**을 실험으로 확인했다. GP C를 검증된 최종 모델로 선택하지 않으며, '경고 없음' = '잘 calibrated'로 해석하지 않는다.
+- **기록 상태:** 출력 콘솔을 사용자로부터 확인했으며 `data/analysis/stage3b_settling_unit_comparison.csv`와 `data/analysis/stage3b_settling_unit_summary.json`은 사용자 **로컬 WSL에서 생성**됐음이 확인됐다. 두 결과 파일 자체는 아직 GitHub에 업로드되지 않았다. [Stage 3B 재현 코드](scripts/test_settling_gp_unit_stability.py) / [2026-10-10 연구일지](../../logs/2026-10/2026-10-10.md).
 
 **Stage 3C 및 이후 — 측정 유효성/실패 영역 처리 (추후 검토)**
 
@@ -200,7 +218,7 @@ scripts/
   evaluate_gp_baseline.py     # Stage 2, GP 학습/검증 WSL 실행 완료
   diagnose_metric_semantics.py # Stage 2b, extractor 소스 판정 확인/WSL 실행 완료
   compare_validity_aware_gp.py # Stage 3A, GP(A) vs 대체값 제외 GP(B) WSL 실행 완료
-  test_settling_gp_unit_stability.py  # Stage 3B, 수치 안정성 비교 실행 대기
+  test_settling_gp_unit_stability.py  # Stage 3B, WSL 실행 완료
 data/analysis/
   dataset_audit.json          # Stage 1 실행 후 생성
   anomaly_flags.csv           # Stage 1 --save 실행 후 생성
@@ -210,8 +228,8 @@ data/analysis/
   metric_semantics_flags.csv             # Stage 2b 실행 완료, 설계점별 유효성 판정
   validity_aware_gp_comparison.csv       # Stage 3A 실행 후, 동일 검증점별 A/B 오차
   validity_aware_gp_summary.json         # Stage 3A 실행 후 지표별 MAE/RMSE/coverage
-  stage3b_settling_unit_comparison.csv   # Stage 3B 실행 후 설계점별 B/C 결과
-  stage3b_settling_unit_summary.json     # Stage 3B 실행 후 단위/분산경고/차이 검증
+  stage3b_settling_unit_comparison.csv   # Stage 3B WSL 로컬 생성 완료, GitHub 미업로드
+  stage3b_settling_unit_summary.json     # Stage 3B WSL 로컬 생성 완료, GitHub 미업로드
   ...                         # Stage 2/3 metric-wise prediction/error (추후 정의)
 figures/
   ...                         # Stage 2/3 예측 vs 실측 및 오차 시각화
@@ -240,6 +258,6 @@ EXP-005에는 **새로운 SPICE 관측값이 없으므로** 이전 실험의 `de
 
 ## 09. Conclusion & Next Experiment
 
-**현재 부분 결론:** Stage 1/2/2b/3A까지 실제 실행했다. 학습 label validity 문제가 코드와 원본 실측 비교로 밝혀졌고, 확인된 fallback을 제외하자 PM·Settling의 MAE는 줄었지만 UGBW는 증가했다. Settling GP B의 posterior 분산 경고 때문에 uncertainty calibration은 미검증이다. **GP B를 곧바로 ATLAS에 적용하거나 연구 가설을 입증했다고 결론 내리지 않는다.** Stage 3B는 **계획이며 실행·결과 없음**.
+**현재 부분 결론:** Stage 1/2/2b/3A/3B까지 실제 실행했다. 학습 label validity 문제가 코드와 원본 실측 비교로 밝혀졌고, 확인된 fallback을 제외하자 PM·Settling의 MAE는 줄었지만 UGBW는 증가했다. Settling GP B의 posterior 분산 경고 때문에 uncertainty calibration은 미검증이다. **GP B를 곧바로 ATLAS에 적용하거나 연구 가설을 입증했다고 결론 내리지 않는다.** Stage 3B에서 동일한 34/19와 같은 ATLAS GP를 유지한 채 타깃 단위만 변경하자, B의 음수 분산 경고(1건)·10 µs std 반복(18/19)이 C에서는 모두 사라졌다. **정확한 수치 보정 경로와 C의 calibration은 추가 검증이 필요하다.**
 
 **후속 EXP-006 (조건부):** EXP-005에서 데이터 부족이 병목이라고 판단되면 GP 예측 불확실성 및 near-feasible 영역을 고려하여 신규 TT 설계점의 평가 예산과 위치를 설계한다.
