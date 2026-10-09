@@ -17,7 +17,7 @@ _Last updated: 2026-10-10_
 - **EXP-003:** TT-only에서 D000~D019 재평가 + GP adaptive D020~D059 = **60 TT evaluations, feasible 0**. 최선의 near-feasible design은 D050 (PM=54.16°, UGBW=20.33 MHz, PASS 5/6, worst_margin=-0.0973).
 - 첨부된 ATLAS `iterations.jsonl` 60행을 검증했다. GP fit_time이 adaptive 40회 모두 기록됐으나 **각 GP MLL fit의 성공과 예측 정확도는 아직 미검증**이다.
 
-**현재 우선 과제:** [ATLAS ICCAD 2026 재현 조건 감사](docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md). [EXP-005](experiments/EXP-005_gp_surrogate_reliability/README.md)는 **Stage 3B-2 후 일시 보류**했다. 기존 Stage 1–3B-2 기록과 결과는 보존한다. 새 GP 수정·PM 집중 분석·신규 SPICE를 시작하기 전에, 논문에서 사용한 TSA/500 평가/초기 21개/10회 반복과 우리의 EXP-003/60 평가/초기 20개/1회 차이를 확인한다. 현재 논문 보고 SR=10/10, FSD=176±101과 우리 0/60은 조건이 달라 **재현 성공 또는 실패로 직접 비교할 수 없다**. 논문의 'random specification targets'와 현재 공개 YAML의 고정 target 차이 및 논문 이후 수정된 코드 여부도 확인 필요. 아직 TT feasible 및 실제 feasible-island topology는 발견되지 않았다.
+**현재 우선 과제:** 논문 재현 조건 감사와 준비된 [EXP-006](experiments/EXP-006_atlas_release_baseline_reproduction/README.md)의 **시뮬레이션 전 환경 검증**. 문헌 비교: [ATLAS ICCAD 2026 재현 조건 감사](docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md). [EXP-005](experiments/EXP-005_gp_surrogate_reliability/README.md)는 **Stage 3B-2 후 일시 보류**했다. 기존 Stage 1–3B-2 기록과 결과는 보존한다. 새 GP 수정·PM 집중 분석·신규 SPICE를 시작하기 전에, 논문에서 사용한 TSA/500 평가/초기 21개/10회 반복과 우리의 EXP-003/60 평가/초기 20개/1회 차이를 확인한다. 현재 논문 보고 SR=10/10, FSD=176±101과 우리 0/60은 조건이 달라 **재현 성공 또는 실패로 직접 비교할 수 없다**. 논문의 'random specification targets'와 현재 공개 YAML의 고정 target 차이 및 논문 이후 수정된 코드 여부도 확인 필요. 아직 TT feasible 및 실제 feasible-island topology는 발견되지 않았다.
 
 장기 질문은 계속 같다.
 
@@ -221,6 +221,14 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 - GF180 `design.ngspice`, `sm141064.ngspice`, `smbb000149.ngspice`의 로컬 SHA256 기록 완료. 동일한 로컬 모델 사본들의 해시 일치는 확인, **논문 당시 PDK 모델 해시와의 일치는 여전히 미검증**.
 - **다음 할 일:** `cd ~/atlas && git status --short && cat eval_engines/ngspice/ngspice_inputs/netlist/.spiceinit` (읽기만). 그다음 독립 500-eval run 출력/환경 provenance/예산 승인 여부 결정. 상세 수치와 source hashes: [재현성 감사 §7](docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md).
 - **주의:** ngspice 44.2가 **현재** 기본 PATH에서 확인된 것이며 EXP-003 실행 순간 같은 바이너리를 썼다는 확정 증거는 아직 없음. **실제 benchmark/논문 재현은 아직 실행하지 않았다.**
+
+### .spiceinit 확인 및 공개 코드 기준선 준비 (2026-10-10)
+
+- `~/atlas/eval_engines/ngspice/ngspice_inputs/netlist/.spiceinit` 내용 확인: **`set num_threads=1` 한 줄뿐**. 이는 ngspice 스레드 설정. 소자·스펙·파라미터 변경 사항 없음. **ATLAS subprocess가 실제 이 파일을 읽는지는 미확인**(프로세스 cwd=ATLAS root); 파일은 변경하거나 삭제하지 않음.
+- **[EXP-006: 공개 ATLAS GF180 TSA TT 기준선 재현](experiments/EXP-006_atlas_release_baseline_reproduction/README.md) — 준비 완료, 실행 전**. ATLAS 고정 SHA, `budget=500`, `n_init=21`, `seed=42`, `surrogate=gp`, early-stop. **공개 release의 1-run baseline이지 논문 당시 정확한 10-run 재현 결과가 아님**.
+- 고정 ATLAS `TopoBO.optimize`를 사용하며 설계변수·TT 실측·실패 원본·원래 logger·환경 해시를 독립 보존. 기본 실행은 읽기 전용 검사로, **명시적 `--execute`에서만 신규 SPICE 시작**. 현재 신규 SPICE 0회.
+- **지금 바로 할 작업:** `cd ~/research_intern && git pull --ff-only && python experiments/EXP-006_atlas_release_baseline_reproduction/scripts/run_release_baseline.py` (안전한 사전 점검만 실행). 출력 확인 후 실제 최대 500회 실행 여부 별도 판단.
+- 점검 근거: [논문 재현 조건 감사 §7.4](docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md).
 
 ## EXP-005 GP Surrogate Reliability (Paused after Stage 3B-2, 2026-10-10)
 
