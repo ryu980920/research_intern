@@ -171,6 +171,36 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/test_settling_gp_uni
 
 **재현 근거:** [Stage 3B 19행 비교 CSV](data/analysis/archive/stage3b_settling_unit_comparison.csv) · [상세 JSON](data/analysis/archive/stage3b_settling_unit_summary.json) · [SHA256 목록](data/analysis/archive/README.md).
 
+**Stage 3B-2 — GP posterior 분산 하한 추적 (코드 준비, WSL 실행 전)**
+
+### 연구 질문 정정 및 가설
+
+**Stage 3B의 B(s)와 C(µs) 비교는 최종 모델 성능 경쟁이 아니다.** B에서 수치 보정이 발생한 것으로 보이므로 B의 94.7% '구간 포함률'을 유효한 신뢰도 기준으로 삼아 C의 68.4%가 악화됐다고 결론 내릴 수 없다. Stage 3B는 오직 **출력 단위가 수치 결과에 영향을 준다는 진단**이었다. C도 정상적인 calibration을 입증하지 않았다.
+
+**정정:** GPyTorch의 \`Negative variance values detected\` 메시지는 실제 값이 음수임을 보장하지 않는다. GPyTorch \`MultivariateNormal.variance\`는 공분산 대각원소가 dtype별 \`min_variance\` **보다 작으면** (작은 양수도 포함) 경고를 내고 \`clamp_min(min_variance)\`을 적용한다. double 기본 최소값 \`1e-10\`이 s² 단위에 적용되면 std 하한이 **10 µs**가 된다. 아직 우리 환경의 실제 **clamp 적용 직전 raw diagonal**은 측정하지 않았으므로 어디서 문제가 생겼는지는 미확정.
+
+**핵심 가설 H3B-2:** seconds GP B의 공분산 원래 대각값이 다수 \`1e-10 s²\`보다 작아서 **고정 단위 하한으로 std가 10 µs가 되었을 수 있다.** 반면 microseconds GP C에는 같은 \`1e-10\`이 **µs²**로 적용되어 물리적 크기가 1e12배 다른 하한이 될 수 있다.
+
+**왜 이번 단계가 우선인가?** 분산 결과가 보정된 상태에서 GP 모델의 '불확실성 예측 성능'을 논쟁하면 올바른 기준이 없다. GP의 미보정 분산을 먼저 추출해 문제가 **library의 출력 하한**, **실제 수치 음수**, **보정 전부터 지나치게 작은 GP 분산** 중 어디에서 발생하는지 구분한다.
+
+실행 코드: [scripts/trace_settling_posterior_variance.py](scripts/trace_settling_posterior_variance.py)
+
+- Stage 3B와 같은 34 train / 19 holdout, 같은 확정 무효 Settling mask, 같은 ATLAS GP/seed=42, B(s)와 C(µs) 각 1회 재학습. **SPICE 0회.**
+- BoTorch posterior의 **unclipped \`lazy_covariance_matrix.diagonal\`**을 직접 조회하고, \`posterior.variance\` 및 GPyTorch의 \`settings.min_variance\`와 나란히 기록.
+- raw 대각값 중 **진짜 음수인 개수**와 **양수지만 하한 미만인 개수**를 분리할 수 있도록 설계점별 raw/보정 variance 값을 모두 저장.
+- Stage 3B의 이전 B/C 평균과 std가 재현되는지도 검증. 버전·장치·outcome standardization 규모·likelihood noise도 기록.
+- 결과: \`data/analysis/stage3b2_variance_trace.csv\`, \`stage3b2_variance_trace_summary.json\` (새 파일, 덮어쓰기 금지).
+- 출력된 실제 수치로 H3B-2를 판별한 후에만 수치 개선 정책(표준화된 단위 내부에서 분산 평가, 하한 처리 검토 등)을 정한다. **지금은 ATLAS/GPyTorch 코드를 수정하지 않는다.**
+
+\`\`\`bash
+cd ~/research_intern
+git pull --ff-only
+python experiments/EXP-005_gp_surrogate_reliability/scripts/trace_settling_posterior_variance.py
+\`\`\`
+
+**판단 기준:** B에서 raw variance가 하한 미만이고 reported variance가 \`max(raw, floor)\`와 일치한다면 라이브러리 하한 효과가 재현된다. raw 음수가 있으면 수치 안정성 원인도 후속 조사한다. 모든 결과가 하한으로 설명되지 않으면 다른 posterior 생성/변환 단계를 조사한다.
+
+
 **Stage 3C 및 이후 — 측정 유효성/실패 영역 처리 (추후 검토)**
 
 - 기존 Baseline은 원본 그대로 보존하고, 별도로 **확정적인 무차원 fallback을 학습에서 제외한 raw-target GP와 동일 학습셋의 log-target GP**를 비교한다. 검증도 동일한 후보 집합(확실한 무효 label 제외)에서 한다. 단, 제외되지 않은 샘플의 Settling 유효성은 파형 없이 보장할 수 없다는 한계를 명시한다.
@@ -239,6 +269,7 @@ scripts/
   diagnose_metric_semantics.py # Stage 2b, extractor 소스 판정 확인/WSL 실행 완료
   compare_validity_aware_gp.py # Stage 3A, GP(A) vs 대체값 제외 GP(B) WSL 실행 완료
   test_settling_gp_unit_stability.py  # Stage 3B, WSL 실행 완료
+  trace_settling_posterior_variance.py # Stage 3B-2, raw variance floor audit 준비
 data/analysis/
   dataset_audit.json          # Stage 1 실행 후 생성
   anomaly_flags.csv           # Stage 1 --save 실행 후 생성
@@ -250,6 +281,8 @@ data/analysis/
   validity_aware_gp_summary.json         # Stage 3A 실행 후 지표별 MAE/RMSE/coverage
   stage3b_settling_unit_comparison.csv   # Stage 3B WSL 로컬 생성; GitHub archive/ 사본 보존
   stage3b_settling_unit_summary.json     # Stage 3B WSL 로컬 생성; GitHub archive/ 사본 보존
+  stage3b2_variance_trace.csv           # Stage 3B-2 실행 시 raw/reported 분산 대조
+  stage3b2_variance_trace_summary.json  # Stage 3B-2 실행 시 raw 음수/하한 미만 개수
   ...                         # Stage 2/3 metric-wise prediction/error (추후 정의)
 figures/
   ...                         # Stage 2/3 예측 vs 실측 및 오차 시각화
