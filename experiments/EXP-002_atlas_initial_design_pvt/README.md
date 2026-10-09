@@ -5,7 +5,7 @@ _Status: Completed_
 
 ## Purpose
 
-ATLAS가 optimization을 시작할 때 실제로 사용하는 initial design set을 17개 PVT corner에서 평가해, 단일 `init_params` 점을 넘어 corner-wise feasible-region 구조가 나타나기 시작하는지 확인한다.
+TopoBO optimizer의 기본 인자 `n_init=20`으로 생성한 initial design set을 17개 PVT corner에서 평가해, 단일 `init_params` 점을 넘어 corner-wise feasible-region 구조가 나타나기 시작하는지 확인한다.
 
 EXP-001의 `D000`은 이미 동일한 deterministic PVT 조건에서 평가했으므로 다시 시뮬레이션하지 않는다. EXP-002에서는 나머지 `D001`–`D019`를 추가했다.
 
@@ -26,7 +26,11 @@ EXP-001의 `D000`은 이미 동일한 deterministic PVT 조건에서 평가했�
 
 ## Why 20 Points First
 
-현재 ATLAS의 GP-based optimizer 기본값은 `n_init=20`이다.
+`TopoBO.optimize(...)`의 함수 기본값은 `n_init=20`이다.
+
+다만 2026-10-09 code audit에서 standard entry point인 `run_experiment.py`는 이 기본값을 그대로 쓰지 않고 `n_init_for(evaluator, budget)`로 initial sample 수를 다시 계산함을 확인했다. two-stage GF180 op-amp는 design parameter가 7개이므로 budget >= 63인 standard run에서는 `n_init=21`이 된다.
+
+따라서 EXP-002는 **optimizer-default n_init=20 pilot**이며, standard runner의 모든 budget에서 사용하는 exact initial set이라고 해석하지 않는다.
 
 YAML에 `init_params`가 있을 때 initial design은 다음 방식으로 만들어진다.
 
@@ -34,7 +38,7 @@ YAML에 `init_params`가 있을 때 initial design은 다음 방식으로 만들
 - 12 points: `init_params` 주변 local perturbation
 - 7 points: global Latin Hypercube Sampling (LHS)
 
-따라서 처음부터 임의의 100 points를 생성하기보다, **ATLAS가 실제 optimization 시작 시 보는 20 points를 먼저 PVT로 평가**하는 것이 baseline 비교에 더 직접적이다.
+따라서 처음부터 임의의 100 points를 생성하기보다, **optimizer-default `n_init=20`으로 생성되는 20 points를 먼저 PVT로 평가**하는 것이 baseline 비교에 더 직접적이다.
 
 ## Simulation Setup
 
@@ -302,3 +306,19 @@ EXP-002의 초기 가설 중 “initial set에서 feasible / infeasible이 함�
 5. 어떤 TT candidate를 17-corner PVT로 넘길지 selection rule
 
 이 설계가 완료되기 전에는 다음 Experiment 번호를 확정하지 않는다.
+
+
+## 2026-10-09 Baseline Definition Correction
+
+EXP-002 결과 자체는 유효하다. 수정된 것은 baseline의 표현이다.
+
+```text
+EXP-002
+→ TopoBO.optimize default n_init=20을 명시적으로 사용한 pilot
+
+standard run_experiment.py
+→ n_init_for(evaluator, budget)로 initial sample 수 결정
+→ 7 parameters + budget >= 63이면 n_init=21
+```
+
+따라서 이후 standard ATLAS trajectory와 직접 비교할 때는 initial-sample definition을 반드시 동일하게 맞춘다.
