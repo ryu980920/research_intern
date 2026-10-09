@@ -149,7 +149,27 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/test_settling_gp_uni
 - **B vs C:** 19개 설계점에서 예측 평균 최대 차이 **2.25941 µs**, 표준편차 최대 차이 **8.951 µs**. 대상 데이터·모델 구조를 고정했지만 수치 표현 단위에 따라 결과가 달라진다.
 - **해석:** 이전 GP B의 10 µs std 반복이 단순한 정상 GP uncertainty 현상이라기보다 **단위에 영향을 받는 수치 보정과 연관되었을 가능성을 강화**한다. GPyTorch 경고에 나타난 `1e-10` 분산 보정값의 제곱근은 `1e-5`이지만, **실제 posterior의 원시 분산과 clipping 위치까지 추적하지는 않았으므로 정확한 원인은 미확정**이다.
 - **연구 의미:** 원본 fallback-label 처리와 독립적으로 surrogate posterior의 **수치 안정성 검증이 필요함**을 실험으로 확인했다. GP C를 검증된 최종 모델로 선택하지 않으며, '경고 없음' = '잘 calibrated'로 해석하지 않는다.
-- **기록 상태:** 출력 콘솔을 사용자로부터 확인했으며 `data/analysis/stage3b_settling_unit_comparison.csv`와 `data/analysis/stage3b_settling_unit_summary.json`은 사용자 **로컬 WSL에서 생성**됐음이 확인됐다. 두 결과 파일 자체는 아직 GitHub에 업로드되지 않았다. [Stage 3B 재현 코드](scripts/test_settling_gp_unit_stability.py) / [2026-10-10 연구일지](../../logs/2026-10/2026-10-10.md).
+- **기록 상태:** WSL 출력 로그 확인 후, 업로드받은 `stage3b_settling_unit_comparison.csv`(19행)와 `stage3b_settling_unit_summary.json`을 별도 [GitHub archive](data/analysis/archive/README.md)에 **원본 데이터로 보존 완료**. 로컬 `data/analysis/` 생성 파일은 그대로 유지. [Stage 3B 재현 코드](scripts/test_settling_gp_unit_stability.py) / [2026-10-10 연구일지](../../logs/2026-10/2026-10-10.md).
+
+
+**Stage 3B 첨부 CSV/JSON 상세 검증(실제 관측):**
+
+| 진단 | GP B(s) | GP C(µs) |
+| --- | ---: | ---: |
+| MAE | 7.93263 µs | 7.72849 µs |
+| RMSE | 22.69509 µs | 22.16195 µs |
+| std 최솟값 / 중앙값 / 최댓값 | 10 / **10** / 15.993 µs | 1.049 / **1.734** / 16.888 µs |
+| std==10 µs | **18/19** | **0/19** |
+| Negative-variance prediction warning | 1 | 0 |
+| mean±1.96×posterior std 내부 관측 개수 | **18/19 (94.74%)** | **13/19 (68.42%)** |
+| 음수 예측 평균 | 0/19 | 0/19 |
+
+- B에서는 유일하게 **D056**이 근사 구간 밖에 있었다. C에서는 **D048, D052, D054, D056, D058, D059**의 6개가 구간 밖에 있었다. C에서 새로 벗어난 점은 **D048/D052/D054/D058/D059 5개**.
+- **D056:** 저장된 관측 `127.25321 µs 상당`, B 평균 약 `29.56 µs`, C 평균 약 `31.82 µs`; C 절대오차 약 `95.44 µs`로 **C 전체 절대오차 합계의 약 65%**에 해당. 이 기록값의 실제 settling-time 유효성은 아직 waveform으로 확인되지 않았다.
+- **해석:** C에서 수치 경고·10µs std 반복은 사라졌으나 std 중앙값이 **10 → 1.734 µs**로 크게 감소했다. 평균 예측 개선 폭은 작고, 결과적으로 C의 구간 포함률은 **94.7% → 68.4%로 하락**했다. B의 높은 포함률도 수치 보정으로 폭이 넓어진 영향일 수 있으며, C의 낮은 포함률도 latent-GP posterior 구간을 그대로 사용한 결과이므로 **어느 쪽도 calibrated prediction interval로 확정할 수 없다.**
+- **연구 판단 변경:** `GP C는 경고가 없으므로 더 신뢰할 수 있다`라는 결론은 **성립하지 않는다**. 다음은 (1) waveform 또는 extractor flag 기반 참값 검증, (2) posterior **raw variance, numerical clipping, observation noise/latent function 구분**이 우선이다. 단위 조정은 원인 분리 실험이지 검증된 해결책이 아니다.
+
+**재현 근거:** [Stage 3B 19행 비교 CSV](data/analysis/archive/stage3b_settling_unit_comparison.csv) · [상세 JSON](data/analysis/archive/stage3b_settling_unit_summary.json) · [SHA256 목록](data/analysis/archive/README.md).
 
 **Stage 3C 및 이후 — 측정 유효성/실패 영역 처리 (추후 검토)**
 
@@ -228,8 +248,8 @@ data/analysis/
   metric_semantics_flags.csv             # Stage 2b 실행 완료, 설계점별 유효성 판정
   validity_aware_gp_comparison.csv       # Stage 3A 실행 후, 동일 검증점별 A/B 오차
   validity_aware_gp_summary.json         # Stage 3A 실행 후 지표별 MAE/RMSE/coverage
-  stage3b_settling_unit_comparison.csv   # Stage 3B WSL 로컬 생성 완료, GitHub 미업로드
-  stage3b_settling_unit_summary.json     # Stage 3B WSL 로컬 생성 완료, GitHub 미업로드
+  stage3b_settling_unit_comparison.csv   # Stage 3B WSL 로컬 생성; GitHub archive/ 사본 보존
+  stage3b_settling_unit_summary.json     # Stage 3B WSL 로컬 생성; GitHub archive/ 사본 보존
   ...                         # Stage 2/3 metric-wise prediction/error (추후 정의)
 figures/
   ...                         # Stage 2/3 예측 vs 실측 및 오차 시각화
@@ -258,6 +278,6 @@ EXP-005에는 **새로운 SPICE 관측값이 없으므로** 이전 실험의 `de
 
 ## 09. Conclusion & Next Experiment
 
-**현재 부분 결론:** Stage 1/2/2b/3A/3B까지 실제 실행했다. 학습 label validity 문제가 코드와 원본 실측 비교로 밝혀졌고, 확인된 fallback을 제외하자 PM·Settling의 MAE는 줄었지만 UGBW는 증가했다. Settling GP B의 posterior 분산 경고 때문에 uncertainty calibration은 미검증이다. **GP B를 곧바로 ATLAS에 적용하거나 연구 가설을 입증했다고 결론 내리지 않는다.** Stage 3B에서 동일한 34/19와 같은 ATLAS GP를 유지한 채 타깃 단위만 변경하자, B의 음수 분산 경고(1건)·10 µs std 반복(18/19)이 C에서는 모두 사라졌다. **정확한 수치 보정 경로와 C의 calibration은 추가 검증이 필요하다.**
+**현재 부분 결론:** Stage 1/2/2b/3A/3B까지 실제 실행했다. 학습 label validity 문제가 코드와 원본 실측 비교로 밝혀졌고, 확인된 fallback을 제외하자 PM·Settling의 MAE는 줄었지만 UGBW는 증가했다. Settling GP B의 posterior 분산 경고 때문에 uncertainty calibration은 미검증이다. **GP B를 곧바로 ATLAS에 적용하거나 연구 가설을 입증했다고 결론 내리지 않는다.** Stage 3B에서 동일한 34/19와 같은 ATLAS GP를 유지한 채 타깃 단위만 변경하자, B의 음수 분산 경고(1건)·10 µs std 반복(18/19)이 C에서는 모두 사라졌다. **실제 CSV/JSON에서 C 구간 포함률 13/19(68.4%)로 B의 18/19(94.7%)보다 낮았음을 확인했다. 정확한 수치 보정 경로와 적절한 예측구간의 구성은 추가 검증이 필요하다.**
 
 **후속 EXP-006 (조건부):** EXP-005에서 데이터 부족이 병목이라고 판단되면 GP 예측 불확실성 및 near-feasible 영역을 고려하여 신규 TT 설계점의 평가 예산과 위치를 설계한다.
