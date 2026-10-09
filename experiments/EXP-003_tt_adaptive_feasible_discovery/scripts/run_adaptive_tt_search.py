@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """EXP-003: ATLAS TT adaptive search for first feasible design.
 
-Runs the same TopoBO optimization loop used by ATLAS, but preserves the full
-parameter + metric trajectory for research analysis.
+Runs the same TopoBO optimization loop used by ATLAS, appending each completed
+TT evaluation to data/trajectory.csv immediately for crash-safe research records.
 """
 
 from __future__ import annotations
 
 import csv
 import json
-import math
 import os
 import re
 import subprocess
@@ -92,7 +91,15 @@ def normalized_margins(specs, constraints, directions, spec_names):
     return margins
 
 
-def write_trajectory(mem_logger, evaluator, n_init: int) -> Path:
+def enable_incremental_trajectory(evaluator, n_init: int):
+    """Append one durable CSV row immediately after each TT evaluation.
+
+    The original evaluator remains responsible for SPICE; this wrapper only
+    records its returned metrics. Using exclusive create ('x') prevents an
+    accidental rerun from truncating an earlier experiment.
+    """
+    from topbo.utils import check_feasibility
+
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     out = DATA_DIR / "trajectory.csv"
 
@@ -103,47 +110,72 @@ def write_trajectory(mem_logger, evaluator, n_init: int) -> Path:
         + ["feasible", "n_specs_passed", "worst_margin", "total_violation"]
     )
 
-    with out.open("w", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
+    try:
+        csv_file = out.open("x", newline="")
+    except FileExistsError as exc:
+        raise FileExistsError(
+            f"EXP-003 trajectory already exists: {out}\\n"
+            "Preserve/rename the existing CSV before starting a new run. "
+            "This script will not overwrite earlier research data."
+        ) from exc
 
-        for i, (x, specs, feasible) in enumerate(
-            zip(
-                mem_logger.history_X,
-                mem_logger.history_specs,
-                mem_logger.history_feasible,
+    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+    writer.writeheader()
+    csv_file.flush()
+    os.fsync(csv_file.fileno())
+
+    original_evaluate = evaluator.evaluate
+    iteration = 0
+
+    def evaluate_and_record(x):
+        nonlocal iteration
+
+        # One SPICE design evaluation, including all required TT analyses.
+        specs = original_evaluate(x)
+
+        # Store the effective clipped/rounded parameters passed to SPICE.
+        effective_x = evaluator._round_params(
+            np.clip(
+                np.asarray(x, dtype=float),
+                evaluator.param_bounds[:, 0],
+                evaluator.param_bounds[:, 1],
             )
-        ):
-            margins = normalized_margins(
-                specs,
-                evaluator.constraints,
-                evaluator.directions,
-                evaluator.spec_names,
-            )
-            n_passed = sum(m >= 0 for m in margins.values())
-            worst_margin = min(margins.values())
-            total_violation = sum(max(0.0, -m) for m in margins.values())
+        )
+        margins = normalized_margins(
+            specs, evaluator.constraints, evaluator.directions, evaluator.spec_names
+        )
+        feasible = check_feasibility(
+            specs, evaluator.constraints, evaluator.directions
+        )
 
-            row = {
-                "iteration": i,
-                "design_id": f"D{i:03d}",
-                "phase": "init" if i < n_init else "adaptive",
-                "feasible": bool(feasible),
-                "n_specs_passed": n_passed,
-                "worst_margin": worst_margin,
-                "total_violation": total_violation,
-            }
-            row.update({
-                name: float(value)
-                for name, value in zip(evaluator.param_names, np.asarray(x))
-            })
-            row.update({
-                name: float(specs[name])
-                for name in evaluator.spec_names
-            })
-            writer.writerow(row)
+        row = {
+            "iteration": iteration,
+            "design_id": f"D{iteration:03d}",
+            "phase": "init" if iteration < n_init else "adaptive",
+            "feasible": bool(feasible),
+            "n_specs_passed": sum(m >= 0 for m in margins.values()),
+            "worst_margin": min(margins.values()),
+            "total_violation": sum(max(0.0, -m) for m in margins.values()),
+        }
+        row.update({
+            name: float(value)
+            for name, value in zip(evaluator.param_names, effective_x)
+        })
+        row.update({
+            name: float(specs[name]) for name in evaluator.spec_names
+        })
 
-    return out
+        writer.writerow(row)
+        # Ensure completed evaluations survive ordinary crashes/interruption.
+        csv_file.flush()
+        os.fsync(csv_file.fileno())
+
+        print(f"[CSV] Saved D{iteration:03d} -> {out}", flush=True)
+        iteration += 1
+        return specs
+
+    evaluator.evaluate = evaluate_and_record
+    return out, csv_file, original_evaluate
 
 
 def write_summary(mem_logger, results, n_init: int, trajectory_path: Path) -> Path:
@@ -213,18 +245,26 @@ def main() -> None:
 
     optimizer = TopoBO()
 
-    mem_logger, results = optimizer.optimize(
-        evaluator,
-        budget=BUDGET,
-        n_init=n_init,
-        seed=SEED,
-        log_root=str(RAW_LOG_ROOT),
-        surrogate="gp",
-        early_stop=True,
-        gp_time_limit=10.0,
+    # Create the CSV before simulation and persist every completed TT evaluation.
+    # If optimization crashes, rows already written remain on disk.
+    trajectory_path, csv_file, original_evaluate = enable_incremental_trajectory(
+        evaluator, n_init
     )
+    try:
+        mem_logger, results = optimizer.optimize(
+            evaluator,
+            budget=BUDGET,
+            n_init=n_init,
+            seed=SEED,
+            log_root=str(RAW_LOG_ROOT),
+            surrogate="gp",
+            early_stop=True,
+            gp_time_limit=10.0,
+        )
+    finally:
+        evaluator.evaluate = original_evaluate
+        csv_file.close()
 
-    trajectory_path = write_trajectory(mem_logger, evaluator, n_init)
     summary_path = write_summary(mem_logger, results, n_init, trajectory_path)
 
     print("=" * 64)
