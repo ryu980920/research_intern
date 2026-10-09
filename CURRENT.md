@@ -17,7 +17,7 @@ _Last updated: 2026-10-10_
 - **EXP-003:** TT-only에서 D000~D019 재평가 + GP adaptive D020~D059 = **60 TT evaluations, feasible 0**. 최선의 near-feasible design은 D050 (PM=54.16°, UGBW=20.33 MHz, PASS 5/6, worst_margin=-0.0973).
 - 첨부된 ATLAS `iterations.jsonl` 60행을 검증했다. GP fit_time이 adaptive 40회 모두 기록됐으나 **각 GP MLL fit의 성공과 예측 정확도는 아직 미검증**이다.
 
-**다음 연구 단계:** [EXP-004](experiments/EXP-004_warm_start_smoke_test/README.md)는 **완료**됐다. EXP-003의 TT 실측 60개를 재시뮬레이션하지 않고 GP에 재사용했고, 내부 `n_init=60, budget=61`에서 신규 D060 설계안 **1개만 TT 평가**했다. D060은 5/6 spec 통과(PM=38.107°), TT feasible=False. GP의 PM 예측 평균은 59.995°(std 16.845°)였고, Settling 예측 평균은 비물리적인 음수였다. **EXP-005**에서는 신규 후보 평가 예산을 확대하되 GP 사전 예측·실측 비교 및 특이값 진단을 병행한다. TT feasible 표본은 아직 0개이므로 feasible island topology는 미검증이다.
+**다음 연구 단계:** [EXP-005](experiments/EXP-005_gp_surrogate_reliability/README.md)는 **Prepared**이다. EXP-004는 Warm Start 60개 재사용 + 신규 D060 TT 평가 **1회**로 기능 검증을 완료했으나, PM 예측 평균 59.995°(실측 38.107°), 비물리적 Settling 예측 평균 등 모델 신뢰성 문제가 드러났다. **EXP-005에서는 신규 SPICE 0회**로 EXP-003의 60개 TT 데이터를 점검하고, 학습 D000–D039/검증 D040–D059 분할에서 GP 오차·불확실성·fit fallback을 분석한 후 로그 타깃/국소 모델 등의 개선을 비교한다. 데이터가 실제로 더 필요하다는 근거가 생기면 **EXP-006**에서 신규 TT 평가 예산을 정한다. 아직 TT feasible 및 feasible island topology는 확인되지 않았다.
 
 장기 질문은 계속 같다.
 
@@ -205,6 +205,15 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 - **해석:** Warm Start 기능 검증은 완료되었으나 GP 예측·불확실성 품질은 표본 1개로 입증할 수 없다. 음수 Settling 예측은 추가 조사 필요.
 - **기록:** [EXP-004 README](experiments/EXP-004_warm_start_smoke_test/README.md), [설계점](experiments/EXP-004_warm_start_smoke_test/data/design_points.csv), [실측 성능](experiments/EXP-004_warm_start_smoke_test/data/corner_metrics.csv), [GP 예측/관측](experiments/EXP-004_warm_start_smoke_test/raw/prediction_D060.json).
 - **EXP-005:** 신규 평가 예산을 늘릴 때 모든 신규 후보의 사전 GP 평균/표준편차와 실제 SPICE 성능을 함께 보존하고 모델 예측 품질을 점검한다.
+
+## EXP-005 GP Surrogate Reliability (Prepared, 2026-10-10)
+
+- **RQ:** 기존 GP 예측 오차가 data quality·극단값·모델링/fit 문제 중 어디와 연결되는가? 관측값 부족이 실제 병목인가?
+- **Stage 1 (구현됨, 실행 대기):** EXP-003 `raw/trajectory.csv` 60개 점검 스크립트 `scripts/audit_tt_dataset.py` (신규 SPICE 0회). PM=-180° 근처, UGBW 1 Hz 이하, Settling >600 µs는 **원인 확정이 아닌 점검 플래그**.
+- **Stage 2/3 (설계만 완료):** D000–D039 train 40 / D040–D059 holdout 20으로 baseline GP의 MAE/RMSE/구간 포함률·MLL fallback을 기록, 동일 분할에서 로그 타깃 개선과 필요시 국소 GP 비교.
+- **중요:** D040–D059는 adaptive 탐색으로 선택된 데이터이며 iid 일반화 성능을 보장하지 않는다. GP의 Settling 음수 예측은 관찰된 문제지만 그 원인은 미확인.
+- **Budget:** 현재 EXP-005에서 **추가 ngspice 설계 평가 0개**. 이후 필요성이 입증될 때 EXP-006에서 별도로 결정.
+- **문서:** [EXP-005 README](experiments/EXP-005_gp_surrogate_reliability/README.md), [실험 설정](experiments/EXP-005_gp_surrogate_reliability/config/run_config.md).
 
 ## Current Questions
 
