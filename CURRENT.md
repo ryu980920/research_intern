@@ -8,7 +8,7 @@ _Last updated: 2026-10-04_
 
 ## Current Stage
 
-**ATLAS initial 20-point PVT pilot completed — feasible / near-feasible region discovery is the next bottleneck**
+**Optimizer-default 20-point PVT pilot completed — adaptive TT search design is next**
 
 ATLAS의 기본 실행 흐름과 PVT aggregation 방식을 실제 코드로 추적했고, EXP-001 + EXP-002를 통해 ATLAS가 optimization 시작 시 사용하는 initial 20 design points를 17개 PVT corner에서 모두 평가했다.
 
@@ -160,6 +160,23 @@ corner_metrics.csv
 두 파일은 `design_id`로 연결한다.
 
 모든 corner의 AC/DC/DC-sweep/transient raw CSV를 상시 보존하지 않는다. raw waveform은 이상 metric 진단이나 파형 근거가 필요한 특정 design/corner에서만 선택적으로 재생성한다.
+
+## Baseline Definition Correction — 2026-10-09
+
+EXP-002는 `TopoBO.optimize(...)`의 기본 인자 `n_init=20`을 명시적으로 사용한 pilot이다.
+
+하지만 standard `run_experiment.py`는:
+
+```python
+n_init_for(evaluator, budget)
+= max(min(3 * n_params, budget // 3, 50), 10)
+```
+
+으로 initial sample 수를 계산한다.
+
+two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에서는 `n_init=21`이다.
+
+따라서 이후 adaptive trajectory 실험에서는 **EXP-002의 20-point pilot을 그대로 이어갈지, standard runner의 21-point baseline에 맞출지 먼저 결정**해야 한다.
 
 ## Current Questions
 
