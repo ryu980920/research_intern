@@ -164,6 +164,9 @@ def train_model(name, unit_factor, X_train, y_train_s, bounds, target_s, X_test,
         "model_outcome_stdvs": [
             float(x) for x in gp.outcome_transform.stdvs.detach().cpu().reshape(-1)
         ],
+        "likelihood_noise_standardized": [
+            float(x) for x in gp.likelihood.noise.detach().cpu().reshape(-1)
+        ],
     }
 
 
@@ -234,6 +237,10 @@ def main():
             "c_reported_std_us": float(
                 np.sqrt(c["reported_variance"][i])
             ),
+            "b_reported_mean_us": float(b["mean"][i] * FACTOR),
+            "c_reported_mean_us": float(c["mean"][i]),
+            "stage3b_saved_b_mean_us": float(previous[i]["stage3b_b_mean_us"]),
+            "stage3b_saved_c_mean_us": float(previous[i]["stage3b_c_mean_us"]),
             "stage3b_saved_b_std_us": float(previous[i]["stage3b_b_std_us"]),
             "stage3b_saved_c_std_us": float(previous[i]["stage3b_c_std_us"]),
         }
@@ -243,6 +250,10 @@ def main():
                            r["stage3b_saved_b_std_us"]) for r in values))
     c_diff = float(max(abs(r["c_reported_std_us"] -
                            r["stage3b_saved_c_std_us"]) for r in values))
+    b_mean_diff = float(max(abs(r["b_reported_mean_us"] -
+                                r["stage3b_saved_b_mean_us"]) for r in values))
+    c_mean_diff = float(max(abs(r["c_reported_mean_us"] -
+                                r["stage3b_saved_c_mean_us"]) for r in values))
 
     def summaries(obj):
         return {
@@ -263,6 +274,7 @@ def main():
             "posterior_type": obj["posterior_type"],
             "distribution_type": obj["distribution_type"],
             "outcome_stdvs": obj["model_outcome_stdvs"],
+            "likelihood_noise_standardized": obj["likelihood_noise_standardized"],
         }
 
     summary = {
@@ -288,6 +300,8 @@ def main():
         "c_microseconds": summaries(c),
         "b_max_reproduced_std_difference_us": b_diff,
         "c_max_reproduced_std_difference_us": c_diff,
+        "b_max_reproduced_mean_difference_us": b_mean_diff,
+        "c_max_reproduced_mean_difference_us": c_mean_diff,
         "min_variance_B_floor_as_s2": b["min_variance_setting"],
         "min_variance_C_floor_as_s2": c["min_variance_setting"] / FACTOR**2,
         "interpretation_limitations": [
@@ -320,7 +334,8 @@ def main():
               f" | raw_negative={model['raw_negative'].sum()}/19"
               f" | clamp_match={model['variance_matches_library_floor']}"
               f" | variance_warn={len(model['variance_warnings'])}", flush=True)
-    print(f"[REPRO] max saved std mismatch B={b_diff:.6g} us, "
+    print(f"[REPRO] max saved mean mismatch B={b_mean_diff:.6g} us, "
+          f"C={c_mean_diff:.6g} us; std mismatch B={b_diff:.6g} us, "
           f"C={c_diff:.6g} us", flush=True)
     print(f"[SAVED] {OUTPUT_CSV}", flush=True)
     print(f"[SAVED] {OUTPUT_JSON}", flush=True)
