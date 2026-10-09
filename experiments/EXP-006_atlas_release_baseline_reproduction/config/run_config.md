@@ -39,6 +39,17 @@ statistical_switches:
 - `ngspice`: pinned installed version 44.2 currently `/usr/local/bin/ngspice`; version/path verified again by preflight. No claim about ngspice loading `netlist/.spiceinit`.
 - 3 PDK hash values pinned by preflight, see [script](../scripts/run_release_baseline.py) and [reproduction audit](../../../docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md).
 
+## Failed measurement labels — baseline fidelity policy
+
+**Decision (before any EXP-006 SPICE run):** Preserve the **released ATLAS** GP training pathway without manual filtering. This is a *baseline reproduction control*, **not** a claim that fallback labels are statistically or physically ideal.
+
+- `CircuitEvaluator.evaluate(x)`의 TT metric dict를 원형 그대로 `TopoBO.optimize()`과 `GPSurrogate.fit()`에 전달한다. Settling의 `d_settle` 대체값이나 PM=-180°/UGBW=1 Hz sentinel에 별도 마스킹·재단위화·보정·제거를 적용하지 않는다.
+- 고정 ATLAS `topbo/gp_model.py`의 `fit()`: `y_clean = np.nan_to_num(y, nan=0.0)` 뒤 `SingleTaskGP`로 모든 metric을 학습한다. 이 코드의 `nan=0.0` 처리도 그대로 보존한다. 원본 주석 `# Replace NaN with worst-case values`와 실제 구현이 일치하지 않으므로, 이를 'worst-case 대체'라고 기술하지 않는다.
+- Wrapper의 per-design `trajectory.csv`에 6개 원시 반환값과 `feasible`, `n_specs_passed`, normalized margin을 보존한다. **이 CSV만으로 모든 추출기의 성공 flag가 기록되는 것은 아니다.** PM=-180/UGBW=1Hz 짝 또는 transient horizon 초과와 같은 *알려진 확정 신호*만 분석 단계에서 별도 플래그 가능하며, 정상이었다는 보증은 아님.
+- 실험 중 첫 `feasible=True`를 만나면 공개 ATLAS 원래 규칙대로 early stop한다. 그 뒤 해당 설계점의 waveform/추출 유효성을 검증한 경우에만 **physically verified feasible**라고 표현한다. 추출 실패 대체값을 물리적 settling time으로 받아들이지 않는다.
+- 이후 `validity-aware surrogate` 방법을 시험하려면 **독립적인 후속 실험**, 동일 SPICE budget/seed/PDK/목표 spec과 선택 후보 이력의 차이를 기록한다. '기존 500개 평가점을 다시 GP에 학습'하는 것은 **fixed-dataset 후향 분석**이지 적응형 optimizer의 탐색 성공률 개선을 검증하는 실험이 아니다.
+- EXP-005에서 사용한 failure-label exclusion은 diagnostic GP 학습 비교로 보존하고, **EXP-006 baseline의 원본 학습 규칙에 역으로 적용하지 않는다**.
+
 ## Evidence linking
 
 ```text
