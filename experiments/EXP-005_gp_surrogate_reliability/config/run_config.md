@@ -37,7 +37,7 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/audit_tt_dataset.py
 
 기록이 필요하면 결과 확인 후 `--save`를 붙여 `data/analysis/dataset_audit.json`, `anomaly_flags.csv`를 생성한다. 기존 파일은 덮어쓰지 않는다. JSON에 원본 SHA256을 남긴다.
 
-## 3. GP baseline — Stage 2 (구현됨, WSL 실행 대기)
+## 3. GP baseline — Stage 2 (WSL 완료)
 
 - **실행 스크립트:** `scripts/evaluate_gp_baseline.py`. 신규 SPICE 호출 없이 실제 ATLAS `GPSurrogate` import, pinned SHA 및 YAML에서 bounds/spec 확인.
 - **시간 순서 분할:** train = D000~D039 (40개), holdout = D040~D059 (20개).
@@ -50,11 +50,26 @@ python experiments/EXP-005_gp_surrogate_reliability/scripts/audit_tt_dataset.py
 - D040~D059는 ATLAS가 앞선 결과를 보며 *adaptive selection*한 표본이다. 따라서 이 holdout 결과는 **탐색 궤적에 대한 시간순 진단**이지 iid 무작위 일반화 정확도는 아니다.
 - 검증 세트로 모델 설정을 고르면 최종 성능을 같은 세트에서 편향 없이 평가했다고 주장할 수 없다. 가능하면 rolling-origin/후속 관측에서 확인한다.
 
-## 4. Candidate improvements — Stage 3 (예정)
+## 3b. Extractor semantics — Stage 2b (코드 확인 완료, WSL 기록 대기)
+
+고정된 ATLAS 커밋의 `eval_engines/ngspice/CircuitClass.py`:
+- `find_ugbw`: unity-gain crossing 실패 시 `freq[0]` (GF180 TT testbench 시작 1 Hz)
+- `find_phm`: 같은 crossing 실패 시 `-180`
+- `get_tran_stable_meas`: settle 미발견 시 `settlingTime = d_settle` (무차원 정규화 편차)
+- GF180 TT netlist: `tran 1u 4.01e-4` (종료 시각 401 µs). 이보다 큰 `t_settle_max`는 측정 가능한 시간값이 아님
+
+실제 60개 원본에서 time-window 초과: D013, D014, D015, D016, D017, D023, D047 (train 6, holdout 1).
+paired AC sentinels: D014, D047 (train 1, holdout 1). 
+**주의:** 시간값이 401 µs 이하라는 사실만으로 valid settling이라고 단정할 수 없다.
+
+독립 확인/기록: `python experiments/EXP-005_gp_surrogate_reliability/scripts/diagnose_metric_semantics.py`.
+결과 `data/analysis/metric_semantics_audit.json` / `metric_semantics_flags.csv`. 신규 SPICE/GP 0회.
+
+## 4. Candidate improvements — Stage 3 (추출 의미를 명시한 뒤 진행)
 
 A. **Baseline:** 현재 GP 그대로.
 
-B. **Log-settling:** Settling이 양수인지 먼저 확인한 뒤 `log10(t_settle_max)`를 GP 학습 타깃으로 변환. 양수 물리량에서 음수 예측 문제 완화 가능성을 검증. 변환 출력의 역변환과 구간 계산 방법을 명시해야 한다.
+B. **Validity-aware Settling 비교:** fallback으로 확인된 설계점을 training/holdout regression MAE에서 구분하고, 동일한 확인 가능한 data split의 raw GP와 `log10(t_settle_max)` GP를 비교. 여전히 waveform 없는 남은 행은 valid가 보장되지 않음. 단순 로그 변환으로 단위 혼합 문제를 해결했다고 주장하지 않음.
 
 C. **Local fit (optional):** D050 중심 영역 또는 TT 관심 영역 모델은 표본 수/영역 정의가 충분한지 확인한 뒤 검토한다. 작은 학습 집합은 과적합 위험이 있으므로 임의로 개선이라 단정하지 않는다.
 
