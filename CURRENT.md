@@ -17,7 +17,7 @@ _Last updated: 2026-10-10_
 - **EXP-003:** TT-only에서 D000~D019 재평가 + GP adaptive D020~D059 = **60 TT evaluations, feasible 0**. 최선의 near-feasible design은 D050 (PM=54.16°, UGBW=20.33 MHz, PASS 5/6, worst_margin=-0.0973).
 - 첨부된 ATLAS `iterations.jsonl` 60행을 검증했다. GP fit_time이 adaptive 40회 모두 기록됐으나 **각 GP MLL fit의 성공과 예측 정확도는 아직 미검증**이다.
 
-**다음 연구 단계:** [EXP-004](experiments/EXP-004_warm_start_smoke_test/README.md)에서 **Warm Start 기능 자체**를 검증한다 (Prepared, WSL 실행 전). EXP-003의 TT 실측 60개는 **재시뮬레이션하지 않고** GP 학습 데이터로 재사용하며, ATLAS 내부 `n_init=60, budget=61`에서 **신규 SPICE 평가 예산은 D060 한 점 = 1회**다. 성공하면 EXP-005에서 신규 평가 횟수를 늘려 TT feasible을 탐색한다. TT feasible 표본이 아직 0개이므로 island topology는 미검증이다.
+**다음 연구 단계:** [EXP-004](experiments/EXP-004_warm_start_smoke_test/README.md)는 **완료**됐다. EXP-003의 TT 실측 60개를 재시뮬레이션하지 않고 GP에 재사용했고, 내부 `n_init=60, budget=61`에서 신규 D060 설계안 **1개만 TT 평가**했다. D060은 5/6 spec 통과(PM=38.107°), TT feasible=False. GP의 PM 예측 평균은 59.995°(std 16.845°)였고, Settling 예측 평균은 비물리적인 음수였다. **EXP-005**에서는 신규 후보 평가 예산을 확대하되 GP 사전 예측·실측 비교 및 특이값 진단을 병행한다. TT feasible 표본은 아직 0개이므로 feasible island topology는 미검증이다.
 
 장기 질문은 계속 같다.
 
@@ -162,6 +162,7 @@ EXP-002에서 D006의 FF / 3.6 V / -40 C corner가 8-way parallel PVT 실행 중
 - [x] EXP-003: TT initial 20 + adaptive 40 = 60개 평가 완료 (feasible 0)
 - [x] D050 best near-feasible 후보 확보 및 GP JSONL 60행 검사
 - [x] EXP-001/002/003 공통 README 목차와 parameter/metric CSV schema 정리
+- [x] EXP-004: Warm Start 60개 cached replay + 신규 D060 TT 평가 1회 성공 (설계 feasible=False)
 
 ## Data Policy for Current PVT Study
 
@@ -195,14 +196,15 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 
 현재 EXP-003은 **budget=60**을 선택했으므로 standard `n_init_for()`도 **20**을 반환한다. 이로써 초기 D000–D019 definition을 EXP-002와 맞췄다. 다만 EXP-003 script는 기존 CSV로 warm start하지 않고 **초기 20점을 TT에서 다시 시뮬레이션**한다.
 
-## EXP-004 Warm Start Smoke Plan (Prepared)
+## EXP-004 Warm Start Smoke Result (Completed, 2026-10-10)
 
-- **목적:** EXP-003의 60개 TT 결과를 재사용할 수 있는지 확인하고, 단 1개의 새 D060만 실제 SPICE로 평가하는지 검증.
-- **방법:** 원본 ATLAS는 고정한 채 `EXP-004/scripts/run_warmstart_smoke.py`에서 초기 evaluator 결과를 이전 `trajectory.csv`로 replay. GP는 그 60개 실측값으로 **새로 학습**하며 이전 하이퍼파라미터·Mapper 상태를 완전 복원하지 않는다.
-- **검증 순서:** `--check-only` → `--dry-run`(GP + 신규 SPICE 0회) → 실제 실행(신규 SPICE 1회).
-- **판정:** 60 replay, D060 실측 1회, GP 사전 예측과 실측의 보존. 기능 성공 전에는 EXP-005의 확대 실험을 시작하지 않는다.
-- **상태:** Python 정적 검증/실제 EXP-003 CSV check-only 테스트 완료, **WSL GP 및 실제 ngspice 동작은 검증 대기**.
-- **문서:** [EXP-004 README](experiments/EXP-004_warm_start_smoke_test/README.md).
+- **RQ:** 기존 60개 TT 실측을 재시뮬레이션 없이 GP 학습에 재사용하고 **신규 D060 설계점만** 평가할 수 있는가?
+- **결과:** **성공.** EXP-003의 D000–D059 60개 cached replay, 신규 D060 한 점 TT evaluator 실행, CSV와 GP 사전 예측 JSON 저장. 전체 실행 시간 약 16.5 s.
+- **D060 실제:** gain 439.52, Ibias 0.6681 mA, PM **38.107°**, settling 1.7633 µs, UGBW 26.312 MHz, swing 0.7744 V. **5/6 조건 통과, worst margin -0.3649, TT feasible=False**.
+- **사전 GP 예측:** PM 59.995 ±16.845° (실측 38.107°; 오차 -1.30σ), UGBW 34.050 ±4.203 MHz (실측 26.312 MHz), Ibias 0.5798 ±0.0331 mA (실측 0.6681 mA, +2.66σ). Settling 예측 평균은 -785.8 µs(비물리적), 실측은 1.7633 µs.
+- **해석:** Warm Start 기능 검증은 완료되었으나 GP 예측·불확실성 품질은 표본 1개로 입증할 수 없다. 음수 Settling 예측은 추가 조사 필요.
+- **기록:** [EXP-004 README](experiments/EXP-004_warm_start_smoke_test/README.md), [설계점](experiments/EXP-004_warm_start_smoke_test/data/design_points.csv), [실측 성능](experiments/EXP-004_warm_start_smoke_test/data/corner_metrics.csv), [GP 예측/관측](experiments/EXP-004_warm_start_smoke_test/raw/prediction_D060.json).
+- **EXP-005:** 신규 평가 예산을 늘릴 때 모든 신규 후보의 사전 GP 평균/표준편차와 실제 SPICE 성능을 함께 보존하고 모델 예측 품질을 점검한다.
 
 ## Current Questions
 
