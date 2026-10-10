@@ -1,0 +1,87 @@
+{
+  "source": {
+    "uploaded_filename": "trajectory(1).csv",
+    "github_raw_path": "experiments/EXP-006_atlas_release_baseline_reproduction/raw/received/2026-10-10_uploaded_trajectory.csv",
+    "sha256": "2e5827b2cb812f75f5ee307506385945acdbc7ec40395a558dad5c11855fab34",
+    "size_bytes": 71793,
+    "line_endings": "CRLF",
+    "interpretation": "user-uploaded standalone trajectory only; atlas_logs and completed summary not supplied"
+  },
+  "experiment": {
+    "id": "EXP-006",
+    "circuit": "GF180 two_stage_opamp_gf180",
+    "corner": "TT_3.3V_27C",
+    "ATLAS_sha": "dd23c5ba7beb598909be593e4a84c81dab92cc69",
+    "surrogate": "gp",
+    "seed": 42,
+    "budget": 500,
+    "n_init": 21,
+    "early_stop": true,
+    "data_origin": "user-supplied CSV generated during released-code baseline"
+  },
+  "validation": {
+    "evaluations": 293,
+    "iteration_index_min": 0,
+    "iteration_index_max": 292,
+    "contiguous": true,
+    "initial_points": 21,
+    "adaptive_points": 272,
+    "independently_recomputed_spec_status_mismatches": 0,
+    "all_numeric_cells_finite": true,
+    "unique_design_parameters": 293
+  },
+  "outcome": {
+    "first_feasible_design_id": "D292",
+    "first_feasible_iteration_0based": 292,
+    "first_feasible_evaluation_1based": 293,
+    "feasible_count": 1,
+    "all_six_pass": true,
+    "success_based_on_extracted_metrics": true,
+    "physically_verified_feasible": false,
+    "first_success_is_last_record": true,
+    "worst_margin": 0.03426183536833562,
+    "total_violation": 0,
+    "specs": {
+      "gain_min": 396.71999999999383,
+      "phm_min": 62.05571012210014,
+      "ugbw_min": 20693769.64837425,
+      "vswing_min": 0.46198099999999975,
+      "ibias_max": 0.00085909745,
+      "t_settle_max": 0.000001778029999999984
+    },
+    "design_parameters": {
+      "wp1": 0.000002249,
+      "wn1": 0.000003433,
+      "wp3": 0.000084329,
+      "wn3": 0.000009656,
+      "wn4": 0.000011757,
+      "wn5": 0.000088097,
+      "cc": 9.775e-13
+    }
+  },
+  "observations": {
+    "spec_pass_count_distribution": {
+      "1": 22,
+      "2": 29,
+      "3": 57,
+      "4": 76,
+      "5": 108,
+      "6": 1
+    },
+    "best_infeasible_design_id": "D231",
+    "best_infeasible_worst_margin": -0.002166826383702395,
+    "best_infeasible_pm_deg": 59.869990416977856,
+    "best_infeasible_ugbw_hz": 22151975.71543208,
+    "sentinel_pm_minus180_count": 8,
+    "sentinel_ugbw_1hz_count": 8,
+    "settling_exceeds_401us_count": 11,
+    "settling_above_6us_spec_count": 76,
+    "notes": "Sentinels / horizon violations are diagnostic flags, not exhaustive proof of measurement validity. No full waveform, exact wrapper completion status, or run timing provided."
+  },
+  "unavailable": {
+    "atlas_logs": true,
+    "environment_preflight_json": true,
+    "reproduction_summary_json": true,
+    "measured_waveforms": true
+  }
+}
