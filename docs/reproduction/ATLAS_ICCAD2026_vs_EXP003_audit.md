@@ -188,3 +188,13 @@ set num_threads=1
 별도 실행 준비: [EXP-006 공개코드 TSA 기준선 재현](../../experiments/EXP-006_atlas_release_baseline_reproduction/README.md) 및 [기본값이 안전한 `run_release_baseline.py`](../../experiments/EXP-006_atlas_release_baseline_reproduction/scripts/run_release_baseline.py). TSA, TT, seed42, 500회 예산, 초기 21개, GP 고정 및 early stop. 고정 소스의 `TopoBO.optimize`를 이용하되 각 평가된 design/6개 실제 성능을 추가 raw CSV에 독립 기록. **기본 실행은 read-only 점검이며 SPICE 실행에는 별도 명시적 `--execute` 필요.** 준비 시점에는 SPICE 0회, 재현 결과 아직 없음.
 
 **Next (읽기 전용):** 새 [EXP-006 실행 wrapper](../../experiments/EXP-006_atlas_release_baseline_reproduction/scripts/run_release_baseline.py)를 `--execute` 없이 실행하여 고정 설정 및 PDK를 다시 점검하고, 출력된 `[SAFE]`를 확인한다. 그다음 첫 500-eval 1-run 승인 여부를 결정한다. **현재 새 시뮬레이션은 0회**.
+
+## 8. 후속 실제 실행 결과 — 2026-10-10 (감사 이후)
+
+**앞선 §1–7은 실행 전에 작성된 정적 감사/환경점검 기록으로, 당시의 '신규 SPICE=0'은 그 시점의 사실이다.** 이후 공개 코드 1-run baseline [EXP-006](../../experiments/EXP-006_atlas_release_baseline_reproduction/README.md)을 실제 수행한 결과를 새로 받았다.
+
+- **실제 사용자 제공 원본:** [EXP-006 raw uploaded trajectory](../../experiments/EXP-006_atlas_release_baseline_reproduction/raw/received/2026-10-10_uploaded_trajectory.csv), 293 design evaluations, sha256 `2e5827b2cb812f75f5ee307506385945acdbc7ec40395a558dad5c11855fab34`.
+- **첫 목표 충족:** D292(0-based iteration 292, **293번째 SPICE 설계 평가**), 6/6 Spec 모두 extracted value 기준 PASS, normalized worst_margin +0.0342618. 같은 행의 Gain 396.72, PM 62.0557°, UGBW 20.6938 MHz, Ibias 0.8591 mA, Settling 1.77803 µs, Swing 0.461981 V.
+- **범위:** 공개 release의 고정 TSA targets/seed42/budget500/initial21/GP 고정으로 **한 번 성공**. 논문 당시 코드/타깃과 완전 동일한 10-run 실험을 재현했다는 뜻은 아니다. 논문 TSA first-success FSD 176±101은 10-run mean ± sd이고 이번 FSD 293은 단일 시행이다.
+- **유효성 제한:** 사용자 제공 데이터는 trajectory CSV뿐이므로 원래 atlas_logs 및 full terminal exit 상태/실제 waveform을 검증하지 못했다. PM/UGBW/Settling 물리적 측정 유효성을 별도로 확인한 후 PVT 연구 출발점으로 확정해야 한다.
+- **연구 결정:** 이번 감사/EXP-006 성공을 기록하고 오늘 마무리. EXP-005 GP diagnostic은 보류 유지. 다음에는 D292 waveform validity, missing run logs, 필요시 multi-seed/reproducibility부터 판단한다.
