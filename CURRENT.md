@@ -8,7 +8,7 @@ _Last updated: 2026-10-10_
 
 ## Current Stage
 
-**EXP-001·002 PVT baseline + EXP-003 GP-based TT adaptive pilot completed.**
+**EXP-001/002 PVT baseline, EXP-003 TT pilot, EXP-004 warm-start smoke, EXP-006 released-code TT baseline completed (CSV-confirmed). EXP-005 paused.**
 
 지금까지 실제로 확보한 표본:
 
@@ -17,7 +17,7 @@ _Last updated: 2026-10-10_
 - **EXP-003:** TT-only에서 D000~D019 재평가 + GP adaptive D020~D059 = **60 TT evaluations, feasible 0**. 최선의 near-feasible design은 D050 (PM=54.16°, UGBW=20.33 MHz, PASS 5/6, worst_margin=-0.0973).
 - 첨부된 ATLAS `iterations.jsonl` 60행을 검증했다. GP fit_time이 adaptive 40회 모두 기록됐으나 **각 GP MLL fit의 성공과 예측 정확도는 아직 미검증**이다.
 
-**현재 우선 과제:** 논문 재현 조건 감사와 준비된 [EXP-006](experiments/EXP-006_atlas_release_baseline_reproduction/README.md)의 **시뮬레이션 전 환경 검증**. 문헌 비교: [ATLAS ICCAD 2026 재현 조건 감사](docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md). [EXP-005](experiments/EXP-005_gp_surrogate_reliability/README.md)는 **Stage 3B-2 후 일시 보류**했다. 기존 Stage 1–3B-2 기록과 결과는 보존한다. 새 GP 수정·PM 집중 분석·신규 SPICE를 시작하기 전에, 논문에서 사용한 TSA/500 평가/초기 21개/10회 반복과 우리의 EXP-003/60 평가/초기 20개/1회 차이를 확인한다. 현재 논문 보고 SR=10/10, FSD=176±101과 우리 0/60은 조건이 달라 **재현 성공 또는 실패로 직접 비교할 수 없다**. 논문의 'random specification targets'와 현재 공개 YAML의 고정 target 차이 및 논문 이후 수정된 코드 여부도 확인 필요. 아직 TT feasible 및 실제 feasible-island topology는 발견되지 않았다.
+**현재 연구 판단 (2026-10-10 종료):** [EXP-006](experiments/EXP-006_atlas_release_baseline_reproduction/README.md)에서 공개 ATLAS의 500회 예산 / 21 초기 / seed42 / GP 고정 / TT-only 실행 결과, **293번째 평가의 D292에서 최초 Feasible(6/6 PASS)**을 찾았다. 원본 CSV 293행을 독립 검산했고 0건 불일치. 이는 **현재 공개 코드의 단일 실행 탐색 성공**이지 논문의 10-run 통계 재현, D292 waveform 물리 검증 또는 17-PVT 강건설계 검증을 의미하지 않는다. [EXP-005](experiments/EXP-005_gp_surrogate_reliability/README.md)는 Stage 3B-2 후 보류를 유지한다. 오늘 추가 SPICE/GP 실행 없음.
 
 장기 질문은 계속 같다.
 
@@ -230,6 +230,18 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 - **지금 바로 할 작업:** `cd ~/research_intern && git pull --ff-only && python experiments/EXP-006_atlas_release_baseline_reproduction/scripts/run_release_baseline.py` (안전한 사전 점검만 실행). 출력 확인 후 실제 최대 500회 실행 여부 별도 판단.
 - 점검 근거: [논문 재현 조건 감사 §7.4](docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md).
 
+## EXP-006 Released ATLAS TT Baseline (Completed from uploaded trajectory, 2026-10-10)
+
+- **목표:** 논문 조건에 가까운 공개 ATLAS 단일 기준선 실험에서 최초 Feasible 회로를 찾는가? **한 번의 실행에서 성공.**
+- **설정:** GF180 two-stage, TT/3.3V/27°C, 7D, 6 Specs, fixed public YAML target, seed42, n_init21, GP 고정, budget500, early-stop.
+- **실제 결과:** 293 TT 평가 = initial21 + adaptive272; D000–D291은 Feasible=False, **D292 (zero-based iteration292, 293번째 평가)는 최초 True, 6/6**. 나머지 207회 예산은 조기 종료 시 사용하지 않음(원래 전체 terminal exit log는 미제출).
+- **D292 metrics:** Gain 396.72; PM 62.0557°; UGBW 20.6938 MHz; Ibias 0.8591 mA; settling 1.77803 µs; swing 0.461981 V; worst_margin +0.0342618 (PM 제한).
+- **데이터 무결성:** 293개 설계점 연속/중복 파라미터 0/feasibility & margin 재계산 0 불일치. CRLF 원본 71,793 bytes, SHA256 `2e5827b2cb812f75f5ee307506385945acdbc7ec40395a558dad5c11855fab34`를 GitHub에 직접 보존.
+- **원본/가공:** [EXP-006 raw uploaded trajectory](experiments/EXP-006_atlas_release_baseline_reproduction/raw/received/2026-10-10_uploaded_trajectory.csv) / [분석 요약 JSON](experiments/EXP-006_atlas_release_baseline_reproduction/data/analysis/2026-10-10_trajectory_summary.json).
+- **주의:** 추출된 성능값으로 PASS를 재검산했지만 **D292의 실제 AC/transient waveform 유효성은 미검증**. 제공된 파일에 `reproduction_summary.json`과 원래 `atlas_logs`가 없으므로 walltime/GP fit 상세, 프로세스 정상 종료 여부는 미확인.
+- **논문과 비교:** 논문 TSA 10/10 성공/FSD 176±101 대비, 이번 단일 실행은 FSD293. 코드 시기/타깃 고정 방식 등 차이 때문에 우열이나 논문 전체 재현을 단정하지 않음.
+- **다음 날 우선:** 실행원본 로그 연결 → D292 성능 추출 파형 검증 → 다중 seed 및 17-corner/PVT 연구 단계 선택. **오늘은 실험 종료 및 기록만 완료.**
+
 ## EXP-005 GP Surrogate Reliability (Paused after Stage 3B-2, 2026-10-10)
 
 - **RQ:** 기존 GP 예측 오차가 data quality·극단값·모델링/fit 문제 중 어디와 연결되는가? 관측값 부족이 실제 병목인가?
@@ -249,25 +261,22 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 1. D050은 왜 PM 54.16°에서 목표 60°를 넘지 못하는가? **PM–UGBW trade-off**는 compensation capacitor `cc` 및 width 변화로 해결될 수 있는가?
 2. D014/D047의 UGBW 1 Hz·PM -180°는 extractor의 **교차점 미발견 대체값**임을 확인했다. 긴 settling 값 7개도 정상 측정된 실제 시간은 아니다. **남은 수치의 측정 유효성**과 실패 플래그 기록 방법을 어떻게 확인할까?
 3. 현재 GP fit은 반복마다 실행됐다. 그러나 **GP MLL fit 성공/예측 정확도**를 어떻게 독립적으로 검증할 것인가?
-4. 다른 seed, 넓은 전역 탐색과 경계 국소 탐색으로 실제 TT feasible point를 확보할 수 있는가?
-5. TT feasible 표본을 얻은 뒤에도 서로 분리된 다른 island가 존재하는가? 7D에서 연결성을 어떻게 검증할 것인가?
+4. D292의 추출 성능이 실제 AC/Transient 파형에서도 검증되는가? 다른 seed와 더 넓은 탐색은 서로 다른 TT feasible region을 찾는가?
+5. 확보한 TT feasible D292 이외에 서로 분리된 다른 island가 존재하는가? 7D에서 연결성을 어떻게 검증할 것인가?
 6. 동일한 7D parameter points의 17-corner 평가로 persistence를 정의하고 **동일 SPICE cost/total runtime**에서 robust search 효율을 비교할 수 있는가?
 
 ## Next
 
-### Step 1 — Follow-up: PM–UGBW 진단 및 TT Feasible 탐색 (미실행)
+### Step 1 — D292 TT Feasible의 측정 유효성 검증 (후속, 미실행)
 
-**이유:** EXP-003에서 최초 TT feasible을 찾지 못했지만 D050(5/6, PM만 미달)을 발견했다. 다음 budget만 늘리기 전에 병목의 원인을 확인해야 한다.
+**이유:** EXP-006에서 첫 Feasible을 찾았으므로 'TT feasible 최초 탐색'은 완료됐다. 다음은 그 값이 실제 회로 파형에서 적절히 측정되었는지 확인할 단계다.
 
-1. D050, D030, D044 등의 PM–UGBW trade-off를 원래 시뮬레이터 측정값과 필요 파형으로 확인한다.
-2. PM=-180°, UGBW=1 Hz 같은 sentinel 가능성은 extractor/netlist에서 검증한다.
-3. `cc` 및 width 민감도와 다른 seed/전역·국소 탐색 전략을 비교할 후속 Experiment 질문을 결정한다.
-4. 측정과 GP 예측을 비교하려면 GP의 per-iteration 예측값/불확실성을 별도로 수집한다. 현재 `iterations.jsonl`에는 fit 시간만 있으며 MLL 성공 여부/예측 오차는 없다.
+- 먼저 실행 때 생성된 환경 스냅샷/ATLAS 원본 로그 및 D292 시뮬레이션 출력의 존재 여부를 확인한다.
+- D292 PM unity gain crossing, UGBW, settling-time 파형을 점검하고 extractor의 fallback과 구분한다.
+- 필요하다는 근거가 있을 때만 동일 D292 한 점에 대한 TT 재시뮬레이션 계획을 세운다. 오늘은 신규 SPICE를 추가하지 않는다.
+- 그 후 다중 seed 통계 재현/TT feasible 지역 탐색/17-corner same-point 검증의 우선순위를 선택한다.
 
-**성공 기준 후보:** 실제 TT에서 6개 spec을 동시에 통과하는 design 또는 기존 D050보다 작은 violation을 갖는 재현 가능한 design.
-
-상세 이전 실험: [EXP-003](experiments/EXP-003_tt_adaptive_feasible_discovery/README.md).
-
+상세: [EXP-006](experiments/EXP-006_atlas_release_baseline_reproduction/README.md).
 ### Step 2 — TT Multi-Island Discovery (후속, 미실행)
 
 후속 TT 탐색에서 **first feasible point를 찾더라도 그 점 하나가 Feasible Island 전체는 아니다.**
