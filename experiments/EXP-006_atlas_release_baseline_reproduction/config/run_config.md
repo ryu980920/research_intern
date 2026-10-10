@@ -1,9 +1,9 @@
-# EXP-006 — Pinned Configuration (Prepared, NOT run)
+# EXP-006 — Pinned Configuration (executed; trajectory received)
 
 ## Identity
 
 - Experiment: `EXP-006_atlas_release_baseline_reproduction`
-- Research status: code prepared / no new SPICE yet
+- Research status: first feasible confirmed from 293-row uploaded trajectory on 2026-10-10; full ATLAS original execution logs not yet received
 - Scope: released-code TSA TT baseline, not paper-era exact reproduction
 - ATLAS SHA: `dd23c5ba7beb598909be593e4a84c81dab92cc69`
 - Repository: `ryu980920/research_intern`; pinned ATLAS: `~/atlas`
@@ -60,3 +60,14 @@ code + source SHA → environment_preflight.json → parameters/conditions
 ```
 
 No simulation has yet been performed for EXP-006. Do not fill first-feasible counts, design coordinates, timing, or figures until real output files exist.
+
+## Post-run evidence — 2026-10-10 (do not retroactively modify pinned settings)
+
+- Original user-uploaded CSV: [raw/received/2026-10-10_uploaded_trajectory.csv](../raw/received/2026-10-10_uploaded_trajectory.csv), exactly preserved including CRLF.
+- SHA-256: `2e5827b2cb812f75f5ee307506385945acdbc7ec40395a558dad5c11855fab34`.
+- 293 design evaluations, 21 initial + 272 adaptive. First feasible design at zero-based iteration 292, **293rd evaluation**, ID D292.
+- Extracted SPICE specifications for D292: gain 396.72; phase margin 62.0557 deg; UGBW 20.69377 MHz; Ibias 0.859097 mA; settling 1.77803 us; swing 0.461981 V.
+- User provided a standalone `trajectory(1).csv` without the originating `raw/runs/<run_id>` name, `atlas_logs`, wrapper summary or original waveforms. Run-level log timings and full process completion cannot be separately certified yet.
+- Data validation performed: 293 sequential indices and unique parameter tuples; six target pass flags, pass counts and worst margins independently recomputed for all rows with zero mismatches.
+- **Paper comparison:** this is one run of current released ATLAS with fixed TSA targets; not an exact replication of paper-era 10-run statistics. Do not conflate.
+- **Next day:** check D292 raw AC/transient waveforms and missing original run metadata before any PVT or extra seed benchmarking.
