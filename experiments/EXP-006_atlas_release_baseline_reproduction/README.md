@@ -1,9 +1,9 @@
 # EXP-006 — ATLAS 공개 코드 기준선 재현 (500-eval, GF180 TSA TT)
 
-**Status:** Prepared; **simulation NOT started** (2026-10-10).  
+**Status:** Completed — first feasible at evaluation **293/500** (CSV-confirmed, 2026-10-10). Full ATLAS logs/waveform verification pending.  
 **Track:** Released-code baseline replication, **NOT exact ICCAD paper-era code reproduction**.  
 **Preceding analysis:** [ATLAS 논문 vs EXP-003 재현 조건 감사](../../docs/reproduction/ATLAS_ICCAD2026_vs_EXP003_audit.md).  
-**Current active experiment:** EXP-006. [EXP-005](../EXP-005_gp_surrogate_reliability/README.md) is paused after Stage 3B-2.
+**Record:** EXP-006 single-run completed based on submitted trajectory. [EXP-005](../EXP-005_gp_surrogate_reliability/README.md) remains paused after Stage 3B-2.
 
 ## Experiment at a Glance
 
@@ -12,7 +12,7 @@
 | **왜 하는가?** | EXP-003은 60 TT evaluations/초기 20개/seed42 1회였으므로 논문의 500회/초기 21개/10회 성공률과 직접 비교할 수 없다. GP 이상값만으로 ATLAS 알고리즘이 실패했다고 단정하지 않도록 기본 탐색을 재현한다. |
 | **무엇을 할 것인가?** | 공개 ATLAS 커밋을 고정해 GF180 TSA에서 budget 500, seed 42, initial 21, GP 고정, TT-only로 **첫 feasible까지** 실행한다. |
 | **무엇을 얻을 것인가?** | 모든 eval의 설계 파라미터·TT 6개 실측·feasibility·iteration, ATLAS 원래 구조화 로그, 실행환경 hashes, first-feasible evaluation. |
-| **현재 결과** | **아직 SPICE 0회.** 독립 실행 코드와 원본 보존 구조만 준비. |
+| **실제 결과** | **293회 평가(21 init + 272 adaptive)**, D292에서 최초 6/6 동시 통과. Extracted-metric feasible=True, 원본 CSV 검증 완료. |
 
 ## 01. Background & Motivation
 
@@ -85,17 +85,43 @@ python experiments/EXP-006_atlas_release_baseline_reproduction/scripts/run_relea
 
 ## 06. Results & Figures
 
-**Not run.** 완료 전 수치/그래프를 생성하거나 기대 결과를 사실처럼 기록하지 않는다.
+**실행 완료 — 사용자 제공 trajectory CSV에서 검증.** 전체 293개 설계점(0..292), 21 initial 및 272 adaptive, 중복 파라미터 0개, 모든 293개 행의 feasibility/pass-count/worst-margin 독립 재검산 결과 불일치 0개.
 
 Run 이후 제안할 그림: 최초 feasible 유무/first-success iteration, worst-margin vs evaluation, PM/UGBW 동시 margin vs iteration, constraint pass-count vs iteration. 각 그림의 원본은 `raw/runs/.../trajectory.csv` 및 `atlas_logs/.../iterations.jsonl`.
 
+### EXP-006 archived measurements — 2026-10-10
+
+- Original uploaded file: trajectory(1).csv; archived unmodified at [raw/received/2026-10-10_uploaded_trajectory.csv](raw/received/2026-10-10_uploaded_trajectory.csv).
+- Machine-readable derived results: [data/analysis/2026-10-10_trajectory_summary.json](data/analysis/2026-10-10_trajectory_summary.json).
+- Source SHA-256: 2e5827b2cb812f75f5ee307506385945acdbc7ec40395a558dad5c11855fab34 (71,793 bytes; CRLF preserved).
+- 292 infeasible + 1 feasible, D292 is first feasible and last recorded evaluation. Previous closest failing point: D231 PM=59.86999 deg, UGBW=22.15198 MHz, worst_margin=-0.002167.
+
+| Measured metric | Target | D292 extracted result | Status |
+| --- | ---: | ---: | --- |
+| Gain | >= 300 | 396.72 | PASS |
+| Phase margin | >= 60 deg | 62.05571 deg | PASS |
+| UGBW | >= 20 MHz | 20.69377 MHz | PASS |
+| Bias current | <= 1 mA | 0.859097 mA | PASS |
+| Settling time | <= 6 us | 1.77803 us | PASS |
+| Output swing | >= 0.3 V | 0.461981 V | PASS |
+
+**D292 design vector:** wp1=2.249 um, wn1=3.433 um, wp3=84.329 um, wn3=9.656 um, wn4=11.757 um, wn5=88.097 um, cc=0.9775 pF. Native CSV stores widths in meters and cc in farads.
+
+**Feasibility:** D292 worst_margin=+0.03426183536833562 (limiting metric PM) and total_violation=0. Pass counts: 1/6=22; 2/6=29; 3/6=57; 4/6=76; 5/6=108; 6/6=1.
+
+**Extractor caveat:** among 293 entries there are 8 PM=-180-deg sentinels, 8 UGBW=1-Hz sentinels, and 11 settling values above the 401-us TT transient window known from EXP-005. Those signal the need to distinguish measured physical values from failed-extraction substitutes. No such easily identified sentinel is present in D292, but its waveform extraction validity is not independently proven.
+
+**Missing primary execution outputs:** User supplied only the trajectory CSV. Original atlas_logs/iterations.jsonl, config.json, results.json, progress.log, environment_preflight.json, reproduction_summary.json, full terminal completion message, and D292 waveforms were not uploaded. Thus complete process exit status and real walltime cannot yet be verified. Do not invent them.
+
+**Plot provenance:** Worst margin vs iteration, per-spec margins, PM-UGBW trade-off and pass-count can be computed later directly from archived raw CSV; no figures generated this session.
+
 ## 07. Discussion (Observation → Interpretation → Research Implication)
 
-**현재 Observation:** 설치환경은 공개 코드 baseline 실행에 필요한 핵심 값이 확인됐다. `.spiceinit`은 단일 스레드 명령만 포함한다. **실행 결과는 없음**.
+**Observation:** 공개 ATLAS 원본 반환값과 원래 GP 학습 규칙을 사용해 D292에서 최초 Feasible 판정(293번째 실제 평가)을 얻었다. 293개 설계점의 파라미터/TT metrics를 원본 그대로 보존했다.
 
-**Interpretation:** EXP-003/60회 실패와 논문/500회 성공 보고는 바로 충돌하는 데이터가 아니다.
+**Interpretation:** 이번 한 번의 공개 코드 TT 실행은 최초 Feasible 탐색에 성공했다. EXP-005의 개별 GP 예측 오류가 반드시 ATLAS 전체 탐색 실패를 뜻하는 것은 아니다. 초기 관측 20개였던 EXP-003과 본 실행(21개)의 첫 20개 중 일치하는 것은 13개뿐이므로 동일한 탐색 경로라고 가정할 수 없다.
 
-**Implication:** 새 GP 수정 전에 정상적인 released-code baseline 결과를 확보해야 Cross-PVT 개선 실험의 대조군을 정의할 수 있다.
+**Implication:** 추출값 기준 TT Feasible 출발점을 확보했다. 실제 D292의 waveform/성능 추출 유효성 확인이 선행되어야 17-corner PVT robust feasibility나 island topology 후속 연구의 물리적 기준점으로 사용할 수 있다.
 
 ## 08. Limitations & Issues
 
@@ -108,4 +134,4 @@ Run 이후 제안할 그림: 최초 feasible 유무/first-success iteration, wor
 
 ## 09. Conclusion & Next Experiment
 
-**Status: PREPARED ONLY.** 먼저 preflight만 실행하고 결과를 검토한 뒤 최대 500회 TT 실행을 시작할지 결정한다. 실험 완료 시 1-run 결과를 논문의 TSA 10-run 평균과 **범위/해석 차이를 명시하며** 대조한다. EXP-005의 GP error analysis는 이 기준선이 명확해질 때까지 보류.
+**Status: Completed (raw-CSV confirmed).** 최초 성공 D292 / 실제 293번째 평가, 6/6 통과, worst margin +0.0342618354. **오늘은 추가 시뮬레이션을 시작하지 않고 종료한다.** 원본 제출 범위에 없는 ATLAS 로그와 waveform을 확인한 뒤 이 결과를 물리적으로 검증된 Feasible이라고 표현할지 결정한다. 논문의 10-run mean FSD(176±101)와 직접 통계 비교할 수 없는 단일 실행임을 유지한다.
