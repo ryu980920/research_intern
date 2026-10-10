@@ -48,13 +48,13 @@ EXP-003은 60회 pilot에서 0/60이고 D050이 5/6 specs를 통과했다. 60회
 
 ## 04. Method & Procedure
 
-1. **Preflight (현재 수행할 단계):** WSL에서 환경 해시와 pinned commit, PDK 스위치, 현재 PATH ngspice 44.2, tracked 파일 무수정 상태 점검. 기본 스크립트 실행은 **SPICE를 전혀 돌리지 않음**.
-2. **Separate explicit authorization (미실행):** 연구자가 승인한 뒤에만 `--execute`로 최대 500개 신규 TT 설계점을 평가. 처음 feasible 발견 시 중지. 기존 D000–D059를 Warm Start로 로드하지 않음.
+1. **Preflight (실행 전 완료):** WSL에서 환경 해시와 pinned commit, PDK 스위치, 현재 PATH ngspice 44.2, tracked 파일 무수정 상태 점검. 기본 스크립트 실행은 **SPICE를 전혀 돌리지 않음**.
+2. **Separate explicit authorization (CSV 결과로 실행 확인):** 연구자가 승인한 뒤에만 `--execute`로 최대 500개 신규 TT 설계점을 평가. 처음 feasible 발견 시 중지. 기존 D000–D059를 Warm Start로 로드하지 않음.
 3. ATLAS의 **기존 `TopoBO.optimize()`**를 그대로 호출. 추가 래퍼는 평가된 파라미터/실측 지표를 CSV에 **기록하기만** 하며 GP, acquisition, 적응형 초기 샘플 생성을 수정하지 않음.
 4. 시작 시 별도 `raw/runs/release_B500_S42_<timestamp>/` 생성. 충돌 시 덮어쓰기 금지. `environment_preflight.json`, `trajectory.csv`, `atlas_logs/...`, 중간 SPICE 디렉터리, 완료 후 `data/` 표준 CSV 및 `reproduction_summary.json` 보존.
 5. 끝난 후 **실제 1-based FSD**, feasible 6개 스펙, 시간비용, 기존 EXP-003과 조건 차이 분석. 논문 결과와 수치가 다르면 우선 paper-era code/PDK/targets/seed 차이를 재검증.
 
-### 먼저 실행할 안전 점검 명령 (이 명령으로 SPICE는 실행되지 않음)
+### 실행 이전에 사용한 안전 점검 명령 (기록용; 이 명령으로 SPICE는 실행되지 않음)
 
 ```bash
 cd ~/research_intern
@@ -93,6 +93,7 @@ Run 이후 제안할 그림: 최초 feasible 유무/first-success iteration, wor
 
 - Original uploaded file: trajectory(1).csv; archived unmodified at [raw/received/2026-10-10_uploaded_trajectory.csv](raw/received/2026-10-10_uploaded_trajectory.csv).
 - Machine-readable derived results: [data/analysis/2026-10-10_trajectory_summary.json](data/analysis/2026-10-10_trajectory_summary.json).
+- Reproducible standard tables derived from the same unmodified raw CSV: [data/design_points.csv](data/design_points.csv) (293×7D) and [data/corner_metrics.csv](data/corner_metrics.csv) (293 TT metrics, same design IDs). These are **post-upload derived data**, not original run files.
 - Source SHA-256: 2e5827b2cb812f75f5ee307506385945acdbc7ec40395a558dad5c11855fab34 (71,793 bytes; CRLF preserved).
 - 292 infeasible + 1 feasible, D292 is first feasible and last recorded evaluation. Previous closest failing point: D231 PM=59.86999 deg, UGBW=22.15198 MHz, worst_margin=-0.002167.
 
