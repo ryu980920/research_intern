@@ -63,7 +63,7 @@ No simulation has yet been performed for EXP-006. Do not fill first-feasible cou
 
 ## Post-run evidence — 2026-10-10 (do not retroactively modify pinned settings)
 
-- Original user-uploaded CSV: [raw/received/2026-10-10_uploaded_trajectory.csv](../raw/baseline_seed42/trajectory.csv), exactly preserved including CRLF.
+- Original user-uploaded CSV: [raw/baseline_seed42/trajectory.csv](../raw/baseline_seed42/trajectory.csv), exactly preserved including CRLF.
 - SHA-256: `2e5827b2cb812f75f5ee307506385945acdbc7ec40395a558dad5c11855fab34`.
 - 293 design evaluations, 21 initial + 272 adaptive. First feasible design at zero-based iteration 292, **293rd evaluation**, ID D292.
 - Extracted SPICE specifications for D292: gain 396.72; phase margin 62.0557 deg; UGBW 20.69377 MHz; Ibias 0.859097 mA; settling 1.77803 us; swing 0.461981 V.
