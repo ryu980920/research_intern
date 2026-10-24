@@ -1,6 +1,6 @@
 # CURRENT — Research Status
 
-_Last updated: 2026-10-10_
+_Last updated: 2026-10-25_
 
 ## Long-term Goal
 
@@ -24,6 +24,14 @@ _Last updated: 2026-10-10_
 > **PVT의 metric-wise worst 압축이 corner identity / feasible-region geometry를 얼마나 잃으며, corner-wise 정보를 보존하면 동일 비용의 robust candidate selection을 개선할 수 있는가?**
 
 지금까지의 실험만으로 새 방법의 개선 효과가 입증된 것은 아니다.
+
+## 2026-10-25 Recovery and Next Validation
+
+- **EXP-006 원본 실행 복구 확인:** WSL `raw/runs/release_B500_S42_20261010_033242_863546/`에 wrapper summary, environment preflight, trajectory 및 ATLAS 원본 로그 4종이 보존되어 있다. `results.json`과 `reproduction_summary.json`의 성공 판정(FSD 293, 4172.7s)이 일치하며, source trajectory SHA-256도 기존 GitHub 보존본과 일치한다.
+- **GitHub 원본 보존:** 업로드된 `config.json`과 293-line `iterations.jsonl`을 [EXP-006 raw/received/2026-10-10_run_original](experiments/EXP-006_atlas_release_baseline_reproduction/raw/received/2026-10-10_run_original/)에 bytes-preserved 저장했다. 나머지 원본 환경/실행 요약·progress 로그는 WSL에서 추후 보관할 것.
+- **파형 부재 원인:** pinned `ngspice_wrapper_parallel.py`에서 결과 추출 뒤 임시 design folder를 `shutil.rmtree`로 제거한다. 원본 EXP-006의 AC/DC/transient 파형은 보존되지 않았다.
+- **현재 활성 작업:** [EXP-007 D292 TT waveform validation](experiments/EXP-007_d292_tt_waveform_validation/README.md) 준비 완료. **아직 신규 SPICE 0회**. `--execute` 없이 안전 점검 → 동일 D292 한 점 TT 재평가하여 generated netlist/AC/DC/DC-sweep/Transient CSV 보존 → 원래 6개 spec과 파형 비교 → 그 후 17-corner PVT 평가 여부 판단.
+- **판정 구분:** EXP-006 extracted-feasible은 확인; D292 `physically verified feasible` 및 `17-corner robust feasible`은 아직 미확인.
 
 ## Verified Baseline Flow
 
