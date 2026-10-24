@@ -1,0 +1,41 @@
+{
+  "circuit": "two_stage_opamp_gf180",
+  "method": "ATLAS",
+  "budget": 500,
+  "seed": 42,
+  "n_init": 21,
+  "param_names": [
+    "wp1",
+    "wn1",
+    "wp3",
+    "wn3",
+    "wn4",
+    "wn5",
+    "cc"
+  ],
+  "spec_names": [
+    "gain_min",
+    "ibias_max",
+    "phm_min",
+    "t_settle_max",
+    "ugbw_min",
+    "vswing_min"
+  ],
+  "constraints": {
+    "gain_min": 300.0,
+    "ibias_max": 0.001,
+    "phm_min": 60.0,
+    "t_settle_max": 6e-06,
+    "ugbw_min": 20000000.0,
+    "vswing_min": 0.3
+  },
+  "directions": {
+    "gain_min": "min",
+    "ibias_max": "max",
+    "phm_min": "min",
+    "t_settle_max": "max",
+    "ugbw_min": "min",
+    "vswing_min": "min"
+  },
+  "start_time": "2026-10-10T03:32:42.874145"
+}
