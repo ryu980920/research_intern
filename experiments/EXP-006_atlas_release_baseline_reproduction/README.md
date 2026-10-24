@@ -91,7 +91,7 @@ Run 이후 제안할 그림: 최초 feasible 유무/first-success iteration, wor
 
 ### EXP-006 archived measurements — 2026-10-10
 
-- Original uploaded file: trajectory(1).csv; archived unmodified at [raw/received/2026-10-10_uploaded_trajectory.csv](raw/received/2026-10-10_uploaded_trajectory.csv).
+- Original uploaded file: trajectory(1).csv; archived unmodified at [raw/baseline_seed42/trajectory.csv](raw/baseline_seed42/trajectory.csv).
 - Machine-readable derived results: [data/analysis/2026-10-10_trajectory_summary.json](data/analysis/2026-10-10_trajectory_summary.json).
 - Reproducible standard tables derived from the same unmodified raw CSV: [data/design_points.csv](data/design_points.csv) (293×7D) and [data/corner_metrics.csv](data/corner_metrics.csv) (293 TT metrics, same design IDs). These are **post-upload derived data**, not original run files.
 - Source SHA-256: 2e5827b2cb812f75f5ee307506385945acdbc7ec40395a558dad5c11855fab34 (71,793 bytes; CRLF preserved).
@@ -112,7 +112,7 @@ Run 이후 제안할 그림: 최초 feasible 유무/first-success iteration, wor
 
 **Extractor caveat:** among 293 entries there are 8 PM=-180-deg sentinels, 8 UGBW=1-Hz sentinels, and 11 settling values above the 401-us TT transient window known from EXP-005. Those signal the need to distinguish measured physical values from failed-extraction substitutes. No such easily identified sentinel is present in D292, but its waveform extraction validity is not independently proven.
 
-**Original-run evidence follow-up (2026-10-25):** User located the original WSL run at `raw/runs/release_B500_S42_20261010_033242_863546/` and inspected `reproduction_summary.json`, `atlas_logs/.../results.json`, `config.json`, and `iterations.jsonl`. Wrapper summary and ATLAS results both report success=True / first_feasible_iter=292 / 4172.7 s. The wrapper summary reports 293 design evaluations and confirms the preserved trajectory SHA256. The **user-uploaded original files** [config.json](raw/received/2026-10-10_run_original/config.json) and [iterations.jsonl](raw/received/2026-10-10_run_original/iterations.jsonl) were archived unmodified. The 293-line JSONL has no missing indices; timing sums: fit=2224.883 s, acquisition=1911.994 s, TDA=5.5433 s, sim=28.015 s (ATLAS logged components, not independent wall-clock measurements). Other original run files (environment_preflight.json, reproduction_summary.json, results.json, progress.log) have been viewed or named in conversation but **not yet archived**; retain the machine run folder.
+**Original-run evidence follow-up (2026-10-25):** User located the original WSL run at `raw/runs/release_B500_S42_20261010_033242_863546/` and inspected `reproduction_summary.json`, `atlas_logs/.../results.json`, `config.json`, and `iterations.jsonl`. Wrapper summary and ATLAS results both report success=True / first_feasible_iter=292 / 4172.7 s. The wrapper summary reports 293 design evaluations and confirms the preserved trajectory SHA256. The **user-uploaded original files** [config.json](raw/baseline_seed42/config.json) and [iterations.jsonl](raw/baseline_seed42/iterations.jsonl) were archived unmodified. The 293-line JSONL has no missing indices; timing sums: fit=2224.883 s, acquisition=1911.994 s, TDA=5.5433 s, sim=28.015 s (ATLAS logged components, not independent wall-clock measurements). Other original run files (environment_preflight.json, reproduction_summary.json, results.json, progress.log) have been viewed or named in conversation but **not yet archived**; retain the machine run folder.
 
 **Why D292 waveforms are absent:** Pinned ATLAS `eval_engines/ngspice/ngspice_wrapper_parallel.py` calls `shutil.rmtree(design_folder)` after `translate_result`. No raw waveforms remain in the original `spice_tmp` directory. **Physical/extractor validation remains pending**, tracked separately in [EXP-007](../EXP-007_d292_tt_waveform_validation/README.md); do not conflate the ATLAS success flag with independent waveform verification.
 
@@ -138,3 +138,10 @@ Run 이후 제안할 그림: 최초 feasible 유무/first-success iteration, wor
 ## 09. Conclusion & Next Experiment
 
 **Status: Completed (raw-CSV confirmed).** 최초 성공 D292 / 실제 293번째 평가, 6/6 통과, worst margin +0.0342618354. **오늘은 추가 시뮬레이션을 시작하지 않고 종료한다.** 원본 제출 범위에 없는 ATLAS 로그와 waveform을 확인한 뒤 이 결과를 물리적으로 검증된 Feasible이라고 표현할지 결정한다. 논문의 10-run mean FSD(176±101)와 직접 통계 비교할 수 없는 단일 실행임을 유지한다.
+
+### Source / data / analysis separation (2026-10-25)
+
+- Immutable uploaded original artifacts are grouped under [`raw/baseline_seed42/`](raw/baseline_seed42/). Their original bytes and hashes are preserved.
+- Standardized design and metrics datasets are [`data/design_points.csv`](data/design_points.csv) and [`data/corner_metrics.csv`](data/corner_metrics.csv).
+- Derived statistics belong to [`data/analysis/`](data/analysis/), and visualizations derived from those data belong to `figures/` only after they have actually been generated.
+- The original execution directory in WSL remains unchanged: `raw/runs/release_B500_S42_20261010_033242_863546/` (local, not yet fully archived on GitHub). Missing summary/log originals are not reconstructed.

@@ -28,7 +28,7 @@ _Last updated: 2026-10-25_
 ## 2026-10-25 Recovery and Next Validation
 
 - **EXP-006 원본 실행 복구 확인:** WSL `raw/runs/release_B500_S42_20261010_033242_863546/`에 wrapper summary, environment preflight, trajectory 및 ATLAS 원본 로그 4종이 보존되어 있다. `results.json`과 `reproduction_summary.json`의 성공 판정(FSD 293, 4172.7s)이 일치하며, source trajectory SHA-256도 기존 GitHub 보존본과 일치한다.
-- **GitHub 원본 보존:** 업로드된 `config.json`과 293-line `iterations.jsonl`을 [EXP-006 raw/received/2026-10-10_run_original](experiments/EXP-006_atlas_release_baseline_reproduction/raw/received/2026-10-10_run_original/)에 bytes-preserved 저장했다. 나머지 원본 환경/실행 요약·progress 로그는 WSL에서 추후 보관할 것.
+- **GitHub 원본 보존:** 업로드된 `config.json`과 293-line `iterations.jsonl`을 [EXP-006 raw/received/2026-10-10_run_original](experiments/EXP-006_atlas_release_baseline_reproduction/raw/baseline_seed42/)에 bytes-preserved 저장했다. 나머지 원본 환경/실행 요약·progress 로그는 WSL에서 추후 보관할 것.
 - **파형 부재 원인:** pinned `ngspice_wrapper_parallel.py`에서 결과 추출 뒤 임시 design folder를 `shutil.rmtree`로 제거한다. 원본 EXP-006의 AC/DC/transient 파형은 보존되지 않았다.
 - **현재 활성 작업:** [EXP-007 D292 TT waveform validation](experiments/EXP-007_d292_tt_waveform_validation/README.md) 준비 완료. **아직 신규 SPICE 0회**. `--execute` 없이 안전 점검 → 동일 D292 한 점 TT 재평가하여 generated netlist/AC/DC/DC-sweep/Transient CSV 보존 → 원래 6개 spec과 파형 비교 → 그 후 17-corner PVT 평가 여부 판단.
 - **판정 구분:** EXP-006 extracted-feasible은 확인; D292 `physically verified feasible` 및 `17-corner robust feasible`은 아직 미확인.
@@ -245,7 +245,7 @@ two-stage GF180 op-amp는 7 parameters이므로 budget >= 63인 standard run에�
 - **실제 결과:** 293 TT 평가 = initial21 + adaptive272; D000–D291은 Feasible=False, **D292 (zero-based iteration292, 293번째 평가)는 최초 True, 6/6**. 나머지 207회 예산은 조기 종료 시 사용하지 않음(원래 전체 terminal exit log는 미제출).
 - **D292 metrics:** Gain 396.72; PM 62.0557°; UGBW 20.6938 MHz; Ibias 0.8591 mA; settling 1.77803 µs; swing 0.461981 V; worst_margin +0.0342618 (PM 제한).
 - **데이터 무결성:** 293개 설계점 연속/중복 파라미터 0/feasibility & margin 재계산 0 불일치. CRLF 원본 71,793 bytes, SHA256 `2e5827b2cb812f75f5ee307506385945acdbc7ec40395a558dad5c11855fab34`를 GitHub에 직접 보존.
-- **원본/가공:** [EXP-006 raw uploaded trajectory](experiments/EXP-006_atlas_release_baseline_reproduction/raw/received/2026-10-10_uploaded_trajectory.csv) / [분석 요약 JSON](experiments/EXP-006_atlas_release_baseline_reproduction/data/analysis/2026-10-10_trajectory_summary.json).
+- **원본/가공:** [EXP-006 raw uploaded trajectory](experiments/EXP-006_atlas_release_baseline_reproduction/raw/baseline_seed42/trajectory.csv) / [분석 요약 JSON](experiments/EXP-006_atlas_release_baseline_reproduction/data/analysis/2026-10-10_trajectory_summary.json).
 - **주의:** 추출된 성능값으로 PASS를 재검산했지만 **D292의 실제 AC/transient waveform 유효성은 미검증**. 제공된 파일에 `reproduction_summary.json`과 원래 `atlas_logs`가 없으므로 walltime/GP fit 상세, 프로세스 정상 종료 여부는 미확인.
 - **논문과 비교:** 논문 TSA 10/10 성공/FSD 176±101 대비, 이번 단일 실행은 FSD293. 코드 시기/타깃 고정 방식 등 차이 때문에 우열이나 논문 전체 재현을 단정하지 않음.
 - **다음 날 우선:** 실행원본 로그 연결 → D292 성능 추출 파형 검증 → 다중 seed 및 17-corner/PVT 연구 단계 선택. **오늘은 실험 종료 및 기록만 완료.**
@@ -324,3 +324,9 @@ Corner별 island matching 및 persistence 정의를 설계한 뒤:
 다음 명령을 실행하는 것 자체가 목적이 아니다.
 
 새 simulation을 시작하기 전에 반드시 **왜 이 데이터를 뽑는지, 어떤 결과가 나오면 가설을 지지하거나 반박하는지, 그 결과가 다음 판단에 어떻게 연결되는지**를 이해하고 진행한다.
+
+## 2026-10-25 EXP-006 GitHub data directory consolidation
+
+- Consolidated uploaded originals into [`raw/baseline_seed42/`](experiments/EXP-006_atlas_release_baseline_reproduction/raw/baseline_seed42/) without changing their bytes: `trajectory.csv`, `config.json`, `iterations.jsonl`.
+- Retained [`data/design_points.csv`](experiments/EXP-006_atlas_release_baseline_reproduction/data/design_points.csv), [`data/corner_metrics.csv`](experiments/EXP-006_atlas_release_baseline_reproduction/data/corner_metrics.csv), and [`data/analysis/`](experiments/EXP-006_atlas_release_baseline_reproduction/data/analysis/) unchanged. `figures/` will contain only actual generated figures.
+- This change does not relocate the original WSL `raw/runs/` folder and does not start SPICE.

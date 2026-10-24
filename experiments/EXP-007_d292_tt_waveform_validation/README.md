@@ -53,7 +53,7 @@
    Creates **new timestamped directory** under `raw/runs/d292_tt_<timestamp>/`. Original EXP-006 run is never edited; previous validation attempts are never overwritten.
 3. Inspect the newly generated `validation_summary.json`, ngspice stdout/stderr, complete generated .cir file, and **ac.csv, dc.csv, dc_sweep.csv, tran.csv**.
 4. Plot gain/phase Bode and Vin/Vout transient from preserved CSV. Check actual crossing and settling threshold before final interpretation.
-5. Only after review, copy key raw files and derived figures to `raw/received/`, `data/` and `figures/` as appropriate; document provenance and outcome.
+5. Only after review, preserve important run-specific raw files under an identified `raw/` archive folder, derived datasets under `data/`, statistics under `data/analysis/`, and generated plots under `figures/` as appropriate; document provenance and outcome.
 
 ## 05. Metrics & Evaluation Criteria
 
